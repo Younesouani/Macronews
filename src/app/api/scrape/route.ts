@@ -8,7 +8,6 @@ export const revalidate = 0;
 
 const parser = new Parser();
 
-// Reliable public economic RSS feeds
 const RSS_FEEDS = [
   'https://search.yahoo.com/rss/headlines?s=finance',
   'https://www.cnbc.com/id/10000664/device/rss/rss.html',
@@ -18,49 +17,64 @@ const RSS_FEEDS = [
 export async function GET() {
   try {
     const insertedArticles = [];
+    let totalItemsFound = 0;
+    let skippedDuplicates = 0;
 
     for (const feedUrl of RSS_FEEDS) {
-      const feed = await parser.parseURL(feedUrl);
+      try {
+        const feed = await parser.parseURL(feedUrl);
+        const items = feed.items || [];
+        totalItemsFound += items.length;
 
-      for (const item of feed.items.slice(0, 5)) {
-        if (!item.title || !item.link) continue;
+        for (const item of items.slice(0, 5)) {
+          if (!item.title || !item.link) continue;
 
-        // Check if article is already stored in Supabase
-        const { data: existing } = await supabase
-          .from('articles')
-          .select('id')
-          .eq('url', item.link)
-          .maybeSingle();
+          const cleanUrl = item.link.trim();
 
-        if (existing) continue;
+          // Check if article already exists in Supabase
+          const { data: existing } = await supabase
+            .from('articles')
+            .select('id')
+            .eq('url', cleanUrl)
+            .maybeSingle();
 
-        const textToAnalyze = item.contentSnippet || item.content || item.title;
-        const aiData = await summarizeArticle(item.title, textToAnalyze);
+          if (existing) {
+            skippedDuplicates++;
+            continue;
+          }
 
-        const newArticle = {
-          title: item.title,
-          description: item.contentSnippet || item.title,
-          content: item.content || item.contentSnippet || item.title,
-          url: item.link,
-          image_url: null,
-          source: feed.title || 'Financial News',
-          category: 'Macro',
-          summary: aiData.summary,
-          sentiment: aiData.sentiment,
-          published_at: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
-        };
+          const textToAnalyze = item.contentSnippet || item.content || item.title;
+          const aiData = await summarizeArticle(item.title, textToAnalyze);
 
-        const { data, error } = await supabase.from('articles').insert([newArticle]).select();
+          const newArticle = {
+            title: item.title,
+            description: item.contentSnippet || item.title,
+            content: item.content || item.contentSnippet || item.title,
+            url: cleanUrl,
+            image_url: null,
+            source: feed.title || 'Financial News',
+            category: 'Macro',
+            summary: aiData.summary,
+            sentiment: aiData.sentiment,
+            published_at: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+          };
 
-        if (!error && data) {
-          insertedArticles.push(data[0]);
+          const { data, error } = await supabase.from('articles').insert([newArticle]).select();
+
+          if (!error && data) {
+            insertedArticles.push(data[0]);
+          }
         }
+      } catch (feedErr) {
+        console.error(`Error reading feed ${feedUrl}:`, feedErr);
       }
     }
 
     return NextResponse.json({
-      message: 'Scraping and AI processing completed successfully',
-      count: insertedArticles.length,
+      message: 'Scrape finished',
+      totalItemsFound,
+      skippedDuplicates,
+      insertedCount: insertedArticles.length,
       articles: insertedArticles,
     });
   } catch (error: any) {
