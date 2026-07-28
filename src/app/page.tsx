@@ -4,6 +4,24 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import NewsCard from '@/components/news/NewsCard';
 
+export const renderSummary = (summary: string) => {
+  try {
+    const parsed = JSON.parse(summary);
+    if (Array.isArray(parsed)) {
+      return (
+        <ul className="list-disc list-inside space-y-1 text-sm text-zinc-300">
+          {parsed.map((point, idx) => (
+            <li key={idx}>{point}</li>
+          ))}
+        </ul>
+      );
+    }
+  } catch {
+    // Fallback if plain text
+  }
+  return <p className="text-sm text-zinc-300">{summary}</p>;
+};
+
 export default function Home() {
   const [articles, setArticles] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +45,11 @@ export default function Home() {
     try {
       const res = await fetch('/api/scrape');
       const data = await res.json();
-      alert(`Scraped & processed ${data.count || 0} new articles!`);
+      
+      const inserted = data.insertedCount ?? 0;
+      const skipped = data.skippedDuplicates ?? 0;
+      
+      alert(`Scraped & processed ${inserted} new articles! (${skipped} duplicates skipped)`);
       await fetchNews();
     } catch (error) {
       alert('Failed to run scraper. Check console.');
