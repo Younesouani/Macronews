@@ -1,57 +1,60 @@
 import { NextResponse } from 'next/server';
-import axios from 'axios';
+import Parser from 'rss-parser';
 import { supabase } from '@/lib/supabase/client';
 import { summarizeArticle } from '@/lib/ai/groq';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
+const parser = new Parser();
+
+// Reliable public economic RSS feeds
+const RSS_FEEDS = [
+  'https://search.yahoo.com/rss/headlines?s=finance',
+  'https://www.cnbc.com/id/10000664/device/rss/rss.html',
+  'https://feeds.content.dowjones.io/public/rss/mw_topstories',
+];
+
 export async function GET() {
   try {
-    const newsApiKey = process.env.NEWS_API_KEY;
-    if (!newsApiKey) {
-      return NextResponse.json({ error: 'Missing News API key' }, { status: 500 });
-    }
-
-    // Switched to searching all global economic & market news
-    const newsRes = await axios.get(
-      `https://newsapi.org/v2/everything?q=economy OR inflation OR stocks OR crypto&language=en&sortBy=publishedAt&pageSize=15&apiKey=${newsApiKey}`
-    );
-
-    const articles = newsRes.data.articles || [];
     const insertedArticles = [];
 
-    for (const item of articles) {
-      if (!item.title || !item.url || item.title === '[Removed]') continue;
+    for (const feedUrl of RSS_FEEDS) {
+      const feed = await parser.parseURL(feedUrl);
 
-      const { data: existing } = await supabase
-        .from('articles')
-        .select('id')
-        .eq('url', item.url)
-        .maybeSingle();
+      for (const item of feed.items.slice(0, 5)) {
+        if (!item.title || !item.link) continue;
 
-      if (existing) continue;
+        // Check if article is already stored in Supabase
+        const { data: existing } = await supabase
+          .from('articles')
+          .select('id')
+          .eq('url', item.link)
+          .maybeSingle();
 
-      const textToAnalyze = item.content || item.description || item.title;
-      const aiData = await summarizeArticle(item.title, textToAnalyze);
+        if (existing) continue;
 
-      const newArticle = {
-        title: item.title,
-        description: item.description,
-        content: item.content,
-        url: item.url,
-        image_url: item.urlToImage,
-        source: item.source?.name || 'Economic News',
-        category: 'Macro',
-        summary: aiData.summary,
-        sentiment: aiData.sentiment,
-        published_at: item.publishedAt || new Date().toISOString(),
-      };
+        const textToAnalyze = item.contentSnippet || item.content || item.title;
+        const aiData = await summarizeArticle(item.title, textToAnalyze);
 
-      const { data, error } = await supabase.from('articles').insert([newArticle]).select();
+        const newArticle = {
+          title: item.title,
+          description: item.contentSnippet || item.title,
+          content: item.content || item.contentSnippet || item.title,
+          url: item.link,
+          image_url: null,
+          source: feed.title || 'Financial News',
+          category: 'Macro',
+          summary: aiData.summary,
+          sentiment: aiData.sentiment,
+          published_at: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
+        };
 
-      if (!error && data) {
-        insertedArticles.push(data[0]);
+        const { data, error } = await supabase.from('articles').insert([newArticle]).select();
+
+        if (!error && data) {
+          insertedArticles.push(data[0]);
+        }
       }
     }
 
