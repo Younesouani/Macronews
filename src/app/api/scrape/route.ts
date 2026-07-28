@@ -13,8 +13,9 @@ export async function GET() {
       return NextResponse.json({ error: 'Missing News API key' }, { status: 500 });
     }
 
+    // Switched to searching all global economic & market news
     const newsRes = await axios.get(
-      `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=10&apiKey=${newsApiKey}`
+      `https://newsapi.org/v2/everything?q=economy OR inflation OR stocks OR crypto&language=en&sortBy=publishedAt&pageSize=15&apiKey=${newsApiKey}`
     );
 
     const articles = newsRes.data.articles || [];
