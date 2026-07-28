@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase/client';
 import { summarizeArticle } from '@/lib/ai/groq';
 
 export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export async function GET() {
   try {
@@ -26,7 +27,7 @@ export async function GET() {
         .from('articles')
         .select('id')
         .eq('url', item.url)
-        .single();
+        .maybeSingle();
 
       if (existing) continue;
 
