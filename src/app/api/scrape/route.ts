@@ -8,9 +8,10 @@ export const revalidate = 0;
 
 const parser = new Parser();
 
+// Updated working economic RSS feeds
 const RSS_FEEDS = [
   'https://search.yahoo.com/rss/headlines?s=finance',
-  'https://www.cnbc.com/id/10000664/device/rss/rss.html',
+  'https://www.cnbc.com/id/100003114/device/rss/rss.html',
   'https://feeds.content.dowjones.io/public/rss/mw_topstories',
 ];
 
@@ -27,13 +28,11 @@ export async function GET() {
         const items = feed.items || [];
         totalItemsFound += items.length;
 
-        // Process only top 3 items per feed to avoid rate limits & timeouts
         for (const item of items.slice(0, 3)) {
           if (!item.title || !item.link) continue;
 
           const cleanUrl = item.link.trim();
 
-          // Check for existing article in Supabase
           const { data: existing } = await supabase
             .from('articles')
             .select('id')
@@ -47,7 +46,6 @@ export async function GET() {
 
           const textToAnalyze = item.contentSnippet || item.content || item.title;
           
-          // Safe AI processing with fallback
           let aiSummary = item.contentSnippet || item.title;
           let aiSentiment = 'neutral';
 
@@ -56,7 +54,6 @@ export async function GET() {
             if (aiData?.summary) aiSummary = aiData.summary;
             if (aiData?.sentiment) aiSentiment = aiData.sentiment;
           } catch (aiErr: any) {
-            console.error('Groq AI Error:', aiErr.message);
             errors.push(`AI Error (${item.title.slice(0, 20)}...): ${aiErr.message}`);
           }
 
@@ -83,7 +80,6 @@ export async function GET() {
           }
         }
       } catch (feedErr: any) {
-        console.error(`Feed Error (${feedUrl}):`, feedErr.message);
         errors.push(`Feed Error: ${feedErr.message}`);
       }
     }
@@ -97,7 +93,6 @@ export async function GET() {
       articles: insertedArticles,
     });
   } catch (error: any) {
-    console.error('Scrape API Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
