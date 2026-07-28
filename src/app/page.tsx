@@ -10,6 +10,13 @@ export default function Home() {
   const [ingesting, setIngesting] = useState(false);
   const [selectedSentiment, setSelectedSentiment] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Helper for temporary toast notifications
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
 
   async function fetchNews() {
     setLoading(true);
@@ -33,10 +40,15 @@ export default function Home() {
       const inserted = data.insertedCount ?? 0;
       const skipped = data.skippedDuplicates ?? 0;
       
-      alert(`Scraped & processed ${inserted} new articles! (${skipped} duplicates skipped)`);
+      if (inserted > 0) {
+        showToast(`Successfully added ${inserted} new articles!`);
+      } else {
+        showToast(`No new articles found (${skipped} duplicates skipped).`);
+      }
+      
       await fetchNews();
     } catch (error) {
-      alert('Failed to run scraper. Check console.');
+      showToast('Failed to run scraper. Please try again.');
     } finally {
       setIngesting(false);
     }
@@ -46,7 +58,6 @@ export default function Home() {
     fetchNews();
   }, []);
 
-  // Filter articles based on sentiment tab and search query
   const filteredArticles = useMemo(() => {
     return articles.filter((article) => {
       const matchesSentiment =
@@ -62,7 +73,6 @@ export default function Home() {
     });
   }, [articles, selectedSentiment, searchQuery]);
 
-  // Sentiment counts
   const counts = useMemo(() => {
     return {
       all: articles.length,
@@ -73,7 +83,15 @@ export default function Home() {
   }, [articles]);
 
   return (
-    <main className="min-h-screen bg-black text-white p-6 max-w-7xl mx-auto">
+    <main className="min-h-screen bg-black text-white p-6 max-w-7xl mx-auto relative">
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-50 bg-zinc-900 border border-emerald-500/40 text-emerald-400 px-4 py-3 rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2 animate-bounce">
+          <span>✨</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* Header Section */}
       <header className="border-b border-zinc-800 pb-6 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
