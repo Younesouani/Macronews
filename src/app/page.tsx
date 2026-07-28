@@ -85,7 +85,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-black text-white p-6 max-w-7xl mx-auto relative">
-      {/* In-App Toast Notification */}
+      {/* Toast Notification Banner */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-zinc-900 border border-emerald-500/40 text-emerald-400 px-4 py-3 rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2 animate-bounce">
           <span>✨</span>
