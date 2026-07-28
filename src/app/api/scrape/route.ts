@@ -3,6 +3,8 @@ import axios from 'axios';
 import { supabase } from '@/lib/supabase/client';
 import { summarizeArticle } from '@/lib/ai/groq';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   try {
     const newsApiKey = process.env.NEWS_API_KEY;
@@ -10,7 +12,6 @@ export async function GET() {
       return NextResponse.json({ error: 'Missing News API key' }, { status: 500 });
     }
 
-    // Fetch top economic/financial news
     const newsRes = await axios.get(
       `https://newsapi.org/v2/top-headlines?category=business&language=en&pageSize=10&apiKey=${newsApiKey}`
     );
@@ -21,7 +22,6 @@ export async function GET() {
     for (const item of articles) {
       if (!item.title || !item.url || item.title === '[Removed]') continue;
 
-      // Check if article already exists
       const { data: existing } = await supabase
         .from('articles')
         .select('id')
@@ -30,7 +30,6 @@ export async function GET() {
 
       if (existing) continue;
 
-      // Process with Groq AI
       const textToAnalyze = item.content || item.description || item.title;
       const aiData = await summarizeArticle(item.title, textToAnalyze);
 
