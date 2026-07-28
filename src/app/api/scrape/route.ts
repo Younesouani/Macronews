@@ -8,7 +8,7 @@ export const revalidate = 0;
 
 const parser = new Parser();
 
-// Updated working economic RSS feeds
+// Working RSS feed endpoints
 const RSS_FEEDS = [
   'https://search.yahoo.com/rss/headlines?s=finance',
   'https://www.cnbc.com/id/100003114/device/rss/rss.html',
