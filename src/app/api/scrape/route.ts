@@ -19,6 +19,7 @@ export async function GET() {
     const insertedArticles = [];
     let totalItemsFound = 0;
     let skippedDuplicates = 0;
+    let errors: string[] = [];
 
     for (const feedUrl of RSS_FEEDS) {
       try {
@@ -26,11 +27,13 @@ export async function GET() {
         const items = feed.items || [];
         totalItemsFound += items.length;
 
-        for (const item of items.slice(0, 5)) {
+        // Process only top 3 items per feed to avoid rate limits & timeouts
+        for (const item of items.slice(0, 3)) {
           if (!item.title || !item.link) continue;
 
           const cleanUrl = item.link.trim();
 
+          // Check for existing article in Supabase
           const { data: existing } = await supabase
             .from('articles')
             .select('id')
@@ -43,7 +46,19 @@ export async function GET() {
           }
 
           const textToAnalyze = item.contentSnippet || item.content || item.title;
-          const aiData = await summarizeArticle(item.title, textToAnalyze);
+          
+          // Safe AI processing with fallback
+          let aiSummary = item.contentSnippet || item.title;
+          let aiSentiment = 'neutral';
+
+          try {
+            const aiData = await summarizeArticle(item.title, textToAnalyze);
+            if (aiData?.summary) aiSummary = aiData.summary;
+            if (aiData?.sentiment) aiSentiment = aiData.sentiment;
+          } catch (aiErr: any) {
+            console.error('Groq AI Error:', aiErr.message);
+            errors.push(`AI Error (${item.title.slice(0, 20)}...): ${aiErr.message}`);
+          }
 
           const newArticle = {
             title: item.title,
@@ -53,8 +68,8 @@ export async function GET() {
             image_url: null,
             source: feed.title || 'Financial News',
             category: 'Macro',
-            summary: aiData.summary,
-            sentiment: aiData.sentiment,
+            summary: aiSummary,
+            sentiment: aiSentiment,
             published_at: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
           };
 
@@ -62,12 +77,14 @@ export async function GET() {
 
           if (error) {
             console.error('Supabase Insert Error:', error.message);
+            errors.push(`DB Insert Error: ${error.message}`);
           } else if (data && data.length > 0) {
             insertedArticles.push(data[0]);
           }
         }
-      } catch (feedErr) {
-        console.error(`Error reading feed ${feedUrl}:`, feedErr);
+      } catch (feedErr: any) {
+        console.error(`Feed Error (${feedUrl}):`, feedErr.message);
+        errors.push(`Feed Error: ${feedErr.message}`);
       }
     }
 
@@ -76,6 +93,7 @@ export async function GET() {
       totalItemsFound,
       skippedDuplicates,
       insertedCount: insertedArticles.length,
+      errors,
       articles: insertedArticles,
     });
   } catch (error: any) {
