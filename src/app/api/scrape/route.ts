@@ -31,7 +31,6 @@ export async function GET() {
 
           const cleanUrl = item.link.trim();
 
-          // Check if article already exists in Supabase
           const { data: existing } = await supabase
             .from('articles')
             .select('id')
@@ -61,7 +60,9 @@ export async function GET() {
 
           const { data, error } = await supabase.from('articles').insert([newArticle]).select();
 
-          if (!error && data) {
+          if (error) {
+            console.error('Supabase Insert Error:', error.message);
+          } else if (data && data.length > 0) {
             insertedArticles.push(data[0]);
           }
         }
