@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import NewsCard from '@/components/news/NewsCard';
@@ -12,7 +14,6 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Helper for temporary toast notifications
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
@@ -84,7 +85,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-black text-white p-6 max-w-7xl mx-auto relative">
-      {/* Toast Notification Banner */}
+      {/* In-App Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-6 right-6 z-50 bg-zinc-900 border border-emerald-500/40 text-emerald-400 px-4 py-3 rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2 animate-bounce">
           <span>✨</span>
@@ -113,7 +114,6 @@ export default function Home() {
 
       {/* Search & Sentiment Filters Bar */}
       <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 mb-8">
-        {/* Sentiment Tabs */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
           {[
             { id: 'all', label: 'All Stories', count: counts.all, activeClass: 'bg-zinc-800 text-white' },
@@ -138,7 +138,6 @@ export default function Home() {
           ))}
         </div>
 
-        {/* Search Bar */}
         <div className="relative min-w-[240px]">
           <input
             type="text"
@@ -158,7 +157,7 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Main Grid Feed */}
+      {/* Main Feed */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((n) => (
@@ -173,17 +172,6 @@ export default function Home() {
               ? `No articles match "${searchQuery}". Try clearing your search.`
               : `No ${selectedSentiment} articles available right now.`}
           </p>
-          {(searchQuery || selectedSentiment !== 'all') && (
-            <button
-              onClick={() => {
-                setSearchQuery('');
-                setSelectedSentiment('all');
-              }}
-              className="bg-zinc-800 hover:bg-zinc-700 text-white font-semibold text-xs px-4 py-2 rounded-lg transition"
-            >
-              Reset Filters
-            </button>
-          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
