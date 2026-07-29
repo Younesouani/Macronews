@@ -15,19 +15,26 @@ interface Article {
 export default function NewsFeed({ initialArticles }: { initialArticles: Article[] }) {
   const [articles, setArticles] = useState<Article[]>(initialArticles || [])
   const [loading, setLoading] = useState(false)
+  const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
   const handleRefresh = async () => {
     setLoading(true)
+    setErrorMsg(null)
     try {
       const res = await fetch('/api/scrape')
       const data = await res.json()
-      if (data.articles && data.articles.length > 0) {
+
+      if (data.error) {
+        setErrorMsg(`API Error: ${data.error}`)
+      } else if (data.errors && data.errors.length > 0) {
+        setErrorMsg(`Scraper issue: ${data.errors.join(' | ')}`)
+      } else if (data.articles && data.articles.length > 0) {
         setArticles(data.articles)
       } else {
-        window.location.reload()
+        setErrorMsg(`Scrape completed but inserted 0 articles. Items found: ${data.totalItemsFound}, Skipped dupes: ${data.skippedDuplicates}`)
       }
-    } catch (err) {
-      console.error('Refresh failed:', err)
+    } catch (err: any) {
+      setErrorMsg(`Fetch failed: ${err.message}`)
     } finally {
       setLoading(false)
     }
@@ -47,6 +54,12 @@ export default function NewsFeed({ initialArticles }: { initialArticles: Article
           {loading ? 'Fetching...' : '⚡ Sync Latest Feed'}
         </button>
       </div>
+
+      {errorMsg && (
+        <div className="p-3 bg-rose-950/50 border border-rose-800/80 text-rose-300 text-xs font-mono rounded-lg break-all">
+          {errorMsg}
+        </div>
+      )}
 
       {articles.length === 0 ? (
         <div className="p-8 text-center bg-zinc-900/30 rounded-xl border border-zinc-800">
