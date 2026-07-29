@@ -14,8 +14,16 @@ const RSS_FEEDS = [
   'https://feeds.content.dowjones.io/public/rss/mw_topstories',
 ];
 
-// Hardcoded project URL string to eliminate any empty/undefined process.env evaluation issues
 const SUPABASE_URL = 'https://mujxnzazkqqxpjbftvtb.supabase.co';
+
+// Helper to guarantee valid sentiment string for PostgreSQL check constraint
+function sanitizeSentiment(raw: string): string {
+  if (!raw) return 'neutral';
+  const val = raw.toLowerCase().trim();
+  if (val.includes('bull') || val.includes('pos')) return 'bullish';
+  if (val.includes('bear') || val.includes('neg')) return 'bearish';
+  return 'neutral';
+}
 
 export async function GET() {
   try {
@@ -62,15 +70,17 @@ export async function GET() {
 
           const textToAnalyze = item.contentSnippet || item.content || item.title;
           let aiSummary = item.contentSnippet || item.title;
-          let aiSentiment = 'neutral';
+          let rawSentiment = 'neutral';
 
           try {
             const aiData = await summarizeArticle(item.title, textToAnalyze);
             if (aiData?.summary) aiSummary = aiData.summary;
-            if (aiData?.sentiment) aiSentiment = aiData.sentiment;
+            if (aiData?.sentiment) rawSentiment = aiData.sentiment;
           } catch (aiErr: any) {
             errors.push(`AI Error (${item.title.slice(0, 20)}...): ${aiErr.message}`);
           }
+
+          const cleanSentiment = sanitizeSentiment(rawSentiment);
 
           const newArticle = {
             title: item.title,
@@ -81,7 +91,7 @@ export async function GET() {
             source: feed.title || 'Financial News',
             category: 'Macro',
             summary: aiSummary,
-            sentiment: aiSentiment,
+            sentiment: cleanSentiment,
             published_at: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
           };
 
