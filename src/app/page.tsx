@@ -1,20 +1,26 @@
 import { createClient } from '@/lib/supabase/server'
 import NewsFeed from '@/components/news/NewsFeed'
 
-export const revalidate = 0 // Disable static caching so page gets initial fresh data
+export const revalidate = 0 // Disable static caching
 
 export default async function HomePage() {
-  const supabase = await createClient()
+  let articles = []
 
-  // Fetch initial articles sorted by newest first
-  const { data: articles, error } = await supabase
-    .from('articles')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(30)
+  try {
+    const supabase = await createClient()
+    const { data, error } = await supabase
+      .from('articles')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(30)
 
-  if (error) {
-    console.error('Error fetching articles:', error)
+    if (error) {
+      console.error('Error fetching articles:', error)
+    } else if (data) {
+      articles = data
+    }
+  } catch (err) {
+    console.error('Failed to load Supabase client or fetch data:', err)
   }
 
   return (
@@ -37,7 +43,7 @@ export default async function HomePage() {
         </div>
       </header>
 
-      <NewsFeed initialArticles={articles || []} />
+      <NewsFeed initialArticles={articles} />
     </main>
   )
 }
