@@ -8,11 +8,6 @@ export const revalidate = 0;
 
 const parser = new Parser();
 
-// Initialize backend client bypassing RLS
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mujxnzazkqqxpjbftvtb.supabase.co';
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 const RSS_FEEDS = [
   'https://finance.yahoo.com/news/rssindex',
   'https://www.cnbc.com/id/100003114/device/rss/rss.html',
@@ -21,6 +16,15 @@ const RSS_FEEDS = [
 
 export async function GET() {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mujxnzazkqqxpjbftvtb.supabase.co';
+    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+    
+    if (!supabaseUrl) {
+      return NextResponse.json({ error: 'Supabase URL missing' }, { status: 500 });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
     const insertedArticles = [];
     let totalItemsFound = 0;
     let skippedDuplicates = 0;
@@ -32,7 +36,6 @@ export async function GET() {
         const items = feed.items || [];
         totalItemsFound += items.length;
 
-        // Take up to 10 latest articles per feed
         for (const item of items.slice(0, 10)) {
           if (!item.title || !item.link) continue;
 
