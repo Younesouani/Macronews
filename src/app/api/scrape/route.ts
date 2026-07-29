@@ -14,21 +14,25 @@ const RSS_FEEDS = [
   'https://feeds.content.dowjones.io/public/rss/mw_topstories',
 ];
 
+// Hardcoded project URL string to eliminate any empty/undefined process.env evaluation issues
+const SUPABASE_URL = 'https://mujxnzazkqqxpjbftvtb.supabase.co';
+
 export async function GET() {
   try {
-    // Force a valid string fallback if the environment variable fails to load
-    const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseUrl = (rawUrl && rawUrl.trim().length > 0) 
-      ? rawUrl.trim() 
-      : 'https://mujxnzazkqqxpjbftvtb.supabase.co';
-
-    const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+    const supabaseKey = (
+      process.env.SUPABASE_SERVICE_ROLE_KEY || 
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
+      ''
+    ).trim();
 
     if (!supabaseKey) {
-      return NextResponse.json({ error: 'Supabase API Key is missing in Vercel environment variables.' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Supabase API Key is missing in Vercel settings.' },
+        { status: 500 }
+      );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(SUPABASE_URL, supabaseKey);
 
     const insertedArticles = [];
     let totalItemsFound = 0;
@@ -94,7 +98,6 @@ export async function GET() {
       }
     }
 
-    // Fetch all fresh articles to return to the UI immediately
     const { data: allArticles } = await supabase
       .from('articles')
       .select('*')
