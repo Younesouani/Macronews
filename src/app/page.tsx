@@ -1,26 +1,29 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import NewsFeed from '@/components/news/NewsFeed'
 
-export const revalidate = 0 // Disable static caching
+export const dynamic = 'force-dynamic'
 
 export default async function HomePage() {
   let articles = []
 
   try {
-    const supabase = await createClient()
-    const { data, error } = await supabase
-      .from('articles')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(30)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mujxnzazkqqxpjbftvtb.supabase.co'
+    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''
+    
+    if (supabaseKey) {
+      const supabase = createClient(supabaseUrl, supabaseKey)
+      const { data, error } = await supabase
+        .from('articles')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(30)
 
-    if (error) {
-      console.error('Error fetching articles:', error)
-    } else if (data) {
-      articles = data
+      if (!error && data) {
+        articles = data
+      }
     }
   } catch (err) {
-    console.error('Failed to load Supabase client or fetch data:', err)
+    console.error('Failed to fetch articles:', err)
   }
 
   return (
