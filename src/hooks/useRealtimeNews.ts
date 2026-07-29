@@ -1,14 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { supabase } from '@/lib/supabase/client'
 
 export function useRealtimeNews(initialArticles: any[]) {
   const [articles, setArticles] = useState(initialArticles)
 
   useEffect(() => {
-    const supabase = createClient()
-
     const channel = supabase
       .channel('realtime-articles')
       .on(
