@@ -16,12 +16,13 @@ const RSS_FEEDS = [
 
 const SUPABASE_URL = 'https://mujxnzazkqqxpjbftvtb.supabase.co';
 
-// Helper to guarantee valid sentiment string for PostgreSQL check constraint
+// Strict fallback sanitizer to strictly align with PostgreSQL check constraint
 function sanitizeSentiment(raw: string): string {
   if (!raw) return 'neutral';
   const val = raw.toLowerCase().trim();
-  if (val.includes('bull') || val.includes('pos')) return 'bullish';
-  if (val.includes('bear') || val.includes('neg')) return 'bearish';
+  
+  if (val.includes('pos') || val.includes('bull')) return 'positive';
+  if (val.includes('neg') || val.includes('bear')) return 'negative';
   return 'neutral';
 }
 
