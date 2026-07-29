@@ -8,9 +8,9 @@ export const revalidate = 0;
 
 const parser = new Parser();
 
-// Working RSS feed endpoints
+// Clean, active RSS endpoints
 const RSS_FEEDS = [
-  'https://search.yahoo.com/rss/headlines?s=finance',
+  'https://finance.yahoo.com/news/rssindex',
   'https://www.cnbc.com/id/100003114/device/rss/rss.html',
   'https://feeds.content.dowjones.io/public/rss/mw_topstories',
 ];
@@ -32,7 +32,6 @@ export async function GET() {
           if (!item.title || !item.link) continue;
 
           const cleanUrl = item.link.trim();
-
           const { data: existing } = await supabase
             .from('articles')
             .select('id')
@@ -45,7 +44,6 @@ export async function GET() {
           }
 
           const textToAnalyze = item.contentSnippet || item.content || item.title;
-          
           let aiSummary = item.contentSnippet || item.title;
           let aiSentiment = 'neutral';
 
@@ -71,7 +69,6 @@ export async function GET() {
           };
 
           const { data, error } = await supabase.from('articles').insert([newArticle]).select();
-
           if (error) {
             console.error('Supabase Insert Error:', error.message);
             errors.push(`DB Insert Error: ${error.message}`);
@@ -80,7 +77,7 @@ export async function GET() {
           }
         }
       } catch (feedErr: any) {
-        errors.push(`Feed Error: ${feedErr.message}`);
+        errors.push(`Feed Error (${feedUrl}): ${feedErr.message}`);
       }
     }
 
