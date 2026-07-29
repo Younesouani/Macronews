@@ -16,11 +16,16 @@ const RSS_FEEDS = [
 
 export async function GET() {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mujxnzazkqqxpjbftvtb.supabase.co';
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
-    
-    if (!supabaseUrl) {
-      return NextResponse.json({ error: 'Supabase URL missing' }, { status: 500 });
+    // Force a valid string fallback if the environment variable fails to load
+    const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseUrl = (rawUrl && rawUrl.trim().length > 0) 
+      ? rawUrl.trim() 
+      : 'https://mujxnzazkqqxpjbftvtb.supabase.co';
+
+    const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '').trim();
+
+    if (!supabaseKey) {
+      return NextResponse.json({ error: 'Supabase API Key is missing in Vercel environment variables.' }, { status: 500 });
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -89,13 +94,20 @@ export async function GET() {
       }
     }
 
+    // Fetch all fresh articles to return to the UI immediately
+    const { data: allArticles } = await supabase
+      .from('articles')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(30);
+
     return NextResponse.json({
       message: 'Scrape finished',
       totalItemsFound,
       skippedDuplicates,
       insertedCount: insertedArticles.length,
       errors,
-      articles: insertedArticles,
+      articles: allArticles || insertedArticles,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
