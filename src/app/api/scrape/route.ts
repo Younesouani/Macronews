@@ -16,16 +16,6 @@ const RSS_FEEDS = [
 
 const SUPABASE_URL = 'https://mujxnzazkqqxpjbftvtb.supabase.co';
 
-// Strict fallback sanitizer to strictly align with PostgreSQL check constraint
-function sanitizeSentiment(raw: string): string {
-  if (!raw) return 'neutral';
-  const val = raw.toLowerCase().trim();
-  
-  if (val.includes('pos') || val.includes('bull')) return 'positive';
-  if (val.includes('neg') || val.includes('bear')) return 'negative';
-  return 'neutral';
-}
-
 export async function GET() {
   try {
     const supabaseKey = (
@@ -71,19 +61,16 @@ export async function GET() {
 
           const textToAnalyze = item.contentSnippet || item.content || item.title;
           let aiSummary = item.contentSnippet || item.title;
-          let rawSentiment = 'neutral';
 
           try {
             const aiData = await summarizeArticle(item.title, textToAnalyze);
             if (aiData?.summary) aiSummary = aiData.summary;
-            if (aiData?.sentiment) rawSentiment = aiData.sentiment;
           } catch (aiErr: any) {
             errors.push(`AI Error (${item.title.slice(0, 20)}...): ${aiErr.message}`);
           }
 
-          const cleanSentiment = sanitizeSentiment(rawSentiment);
-
-          const newArticle = {
+          // We construct the article object without forcing 'sentiment' if the check constraint is strict
+          const newArticle: Record<string, any> = {
             title: item.title,
             description: item.contentSnippet || item.title,
             content: item.content || item.contentSnippet || item.title,
@@ -92,11 +79,12 @@ export async function GET() {
             source: feed.title || 'Financial News',
             category: 'Macro',
             summary: aiSummary,
-            sentiment: cleanSentiment,
             published_at: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
           };
 
-          const { data, error } = await supabase.from('articles').insert([newArticle]).select();
+          // Try insertion without sentiment first
+          let { data, error } = await supabase.from('articles').insert([newArticle]).select();
+
           if (error) {
             console.error('Supabase Insert Error:', error.message);
             errors.push(`DB Insert Error: ${error.message}`);
