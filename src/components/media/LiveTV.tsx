@@ -14,23 +14,23 @@ const STREAMS: StreamChannel[] = [
   {
     id: 'skynews',
     name: 'Sky News Live',
-    badge: '🌍 Global Markets',
-    description: '24/7 breaking global news and macroeconomic developments.',
-    embedUrl: 'https://www.youtube.com/embed/9Auq9mYxfEE?autoplay=1&mute=1',
+    badge: '🌍 Global News',
+    description: '24/7 global breaking news, financial markets, and world reports.',
+    embedUrl: 'https://www.youtube-nocookie.com/embed/9Auq9mYxfEE?autoplay=1&mute=1',
   },
   {
     id: 'france24',
     name: 'France 24 English',
     badge: '💶 European Economy',
-    description: 'International financial news and European market updates.',
-    embedUrl: 'https://www.youtube.com/embed/h3MuIUNCCzI?autoplay=1&mute=1',
+    description: 'International & European market perspectives, policy and news.',
+    embedUrl: 'https://www.youtube-nocookie.com/embed/h3MuIUNCCzI?autoplay=1&mute=1',
   },
   {
     id: 'dw',
     name: 'DW News Live',
     badge: '📊 Macro & Trade',
-    description: 'Global trade, economic analysis, and breaking macro events.',
-    embedUrl: 'https://www.youtube.com/embed/Lu413A23i_c?autoplay=1&mute=1',
+    description: 'Global trade, macroeconomics, and breaking international events.',
+    embedUrl: 'https://www.youtube-nocookie.com/embed/Lu413A23i_c?autoplay=1&mute=1',
   },
 ];
 
@@ -64,7 +64,7 @@ export default function LiveTV({ darkMode }: LiveTVProps) {
         ))}
       </div>
 
-      {/* Video Container */}
+      {/* Main Video Frame Container */}
       <div
         className={`rounded-2xl border overflow-hidden shadow-2xl p-2 ${
           darkMode ? 'bg-[#1C2541]/80 border-slate-800' : 'bg-white border-slate-200'
