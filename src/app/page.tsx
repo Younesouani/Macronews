@@ -23,11 +23,20 @@ interface TickerItem {
   icon: string;
 }
 
+const CATEGORIES = [
+  { id: 'ALL', label: '🌐 All Feeds' },
+  { id: 'FED_MACRO', label: '🏛️ Fed & Macro' },
+  { id: 'TECH_STOCKS', label: '💻 Tech & Equities' },
+  { id: 'ENERGY_COMMODITIES', label: '🛢️ Energy & Gold' },
+  { id: 'CRYPTO', label: '🪙 Crypto & Web3' },
+];
+
 export default function Home() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [syncing, setSyncing] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [darkMode, setDarkMode] = useState<boolean>(true);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
 
@@ -105,13 +114,35 @@ export default function Home() {
     }
   };
 
-  // Search filtering only
+  // Check if article fits the selected sector category
+  const matchesCategoryFilter = (article: Article, categoryId: string) => {
+    if (categoryId === 'ALL') return true;
+    
+    const text = `${article.title} ${article.summary} ${article.category || ''}`.toLowerCase();
+
+    switch (categoryId) {
+      case 'FED_MACRO':
+        return /fed|federal reserve|inflation|cpi|rate|treasury|policy|strike|iran|us |war|economy|gdp|yield/.test(text);
+      case 'TECH_STOCKS':
+        return /tech|semiconductor|ai|nvidia|apple|microsoft|spacex|stock|shares|lam research|earnings|ceo|business/.test(text);
+      case 'ENERGY_COMMODITIES':
+        return /oil|brent|crude|gas|commodity|gold|metal|chevron|beef|prices|energy/.test(text);
+      case 'CRYPTO':
+        return /crypto|bitcoin|ethereum|solana|etf|trust|blockchain|morgan stanley|sec/.test(text);
+      default:
+        return true;
+    }
+  };
+
   const filteredArticles = articles.filter((art) => {
-    return (
+    const matchesSearch =
       art.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       art.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      art.source?.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+      art.source?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCat = matchesCategoryFilter(art, activeCategory);
+
+    return matchesSearch && matchesCat;
   });
 
   return (
@@ -210,8 +241,8 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Clean Full-Width Search Input */}
-        <div className="w-full">
+        {/* Search Bar + Scrollable Category Tabs */}
+        <div className="space-y-4">
           <input
             type="text"
             placeholder="Search macro topics, ticker symbols, or keywords..."
@@ -223,6 +254,24 @@ export default function Home() {
                 : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400 shadow-sm'
             }`}
           />
+
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setActiveCategory(cat.id)}
+                className={`px-3.5 py-2 text-xs font-bold rounded-lg border transition-all whitespace-nowrap shrink-0 ${
+                  activeCategory === cat.id
+                    ? 'bg-[#3A86FF] text-white border-[#3A86FF] shadow-sm'
+                    : darkMode
+                    ? 'bg-[#1C2541] text-slate-300 border-slate-700 hover:border-slate-500 hover:text-white'
+                    : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100 shadow-xs'
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Loading */}
@@ -232,8 +281,17 @@ export default function Home() {
           </div>
         )}
 
-        {/* Articles Feed */}
-        {!loading && (
+        {/* Empty State */}
+        {!loading && filteredArticles.length === 0 && (
+          <div className={`text-center py-12 border rounded-xl ${
+            darkMode ? 'bg-[#1C2541]/40 border-slate-800 text-slate-400' : 'bg-white border-slate-200 text-slate-500'
+          }`}>
+            No articles match the selected sector or search query.
+          </div>
+        )}
+
+        {/* Articles Feed Grid */}
+        {!loading && filteredArticles.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredArticles.map((article) => (
               <div
