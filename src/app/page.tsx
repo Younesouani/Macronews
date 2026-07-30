@@ -39,6 +39,7 @@ export default function Home() {
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [darkMode, setDarkMode] = useState<boolean>(true);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -101,7 +102,8 @@ export default function Home() {
     setSyncing(false);
   };
 
-  const handleShare = (article: Article) => {
+  const handleShare = (article: Article, e: React.MouseEvent) => {
+    e.stopPropagation();
     if (navigator.share) {
       navigator.share({
         title: article.title,
@@ -114,7 +116,6 @@ export default function Home() {
     }
   };
 
-  // Check if article fits the selected sector category
   const matchesCategoryFilter = (article: Article, categoryId: string) => {
     if (categoryId === 'ALL') return true;
     
@@ -296,10 +297,11 @@ export default function Home() {
             {filteredArticles.map((article) => (
               <div
                 key={article.id || article.url}
-                className={`rounded-xl p-4 flex flex-col justify-between border transition-all space-y-3 ${
+                onClick={() => setSelectedArticle(article)}
+                className={`rounded-xl p-4 flex flex-col justify-between border transition-all space-y-3 cursor-pointer ${
                   darkMode
-                    ? 'bg-[#1C2541]/70 border-slate-800 hover:border-slate-700'
-                    : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm'
+                    ? 'bg-[#1C2541]/70 border-slate-800 hover:border-[#3A86FF]/50'
+                    : 'bg-white border-slate-200 hover:border-[#3A86FF]/50 shadow-sm'
                 }`}
               >
                 {article.image_url && (
@@ -322,18 +324,16 @@ export default function Home() {
                     }`}>
                       {article.source}
                     </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#3A86FF]/15 text-[#3A86FF] border border-[#3A86FF]/30">
+                      ⚡ AI Brief
+                    </span>
                   </div>
 
-                  <a
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`text-base font-bold line-clamp-2 transition-colors ${
-                      darkMode ? 'text-white hover:text-[#3A86FF]' : 'text-slate-900 hover:text-[#3A86FF]'
-                    }`}
-                  >
+                  <h3 className={`text-base font-bold line-clamp-2 transition-colors ${
+                    darkMode ? 'text-white hover:text-[#3A86FF]' : 'text-slate-900 hover:text-[#3A86FF]'
+                  }`}>
                     {article.title}
-                  </a>
+                  </h3>
 
                   <p className={`text-xs mt-2 line-clamp-3 leading-relaxed ${
                     darkMode ? 'text-slate-300' : 'text-slate-600'
@@ -352,7 +352,7 @@ export default function Home() {
                   </span>
 
                   <button
-                    onClick={() => handleShare(article)}
+                    onClick={(e) => handleShare(article, e)}
                     className="hover:text-[#3A86FF] transition-colors flex items-center gap-1 font-semibold"
                   >
                     🔗 Share
@@ -363,6 +363,99 @@ export default function Home() {
           </div>
         )}
       </main>
+
+      {/* 1-Click AI Executive Summary Modal */}
+      {selectedArticle && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn"
+          onClick={() => setSelectedArticle(null)}
+        >
+          <div 
+            className={`w-full max-w-lg rounded-2xl border p-6 shadow-2xl space-y-5 transition-all ${
+              darkMode ? 'bg-[#0B132B] border-[#1C2541] text-slate-100' : 'bg-white border-slate-200 text-slate-900'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="flex items-start justify-between gap-3 border-b pb-4 border-slate-700/40">
+              <div className="space-y-1">
+                <span className="text-[10px] font-extrabold tracking-wider uppercase text-[#3A86FF] bg-[#3A86FF]/10 px-2 py-0.5 rounded border border-[#3A86FF]/30">
+                  ⚡ Executive Catalyst Brief
+                </span>
+                <h2 className="text-lg font-bold leading-snug pt-1">
+                  {selectedArticle.title}
+                </h2>
+                <p className="text-xs text-slate-400">Source: {selectedArticle.source}</p>
+              </div>
+              <button
+                onClick={() => setSelectedArticle(null)}
+                className={`p-1.5 rounded-lg text-xs font-bold transition-colors ${
+                  darkMode ? 'hover:bg-slate-800 text-slate-400' : 'hover:bg-slate-100 text-slate-600'
+                }`}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Structured 3-Bullet Breakdown */}
+            <div className="space-y-4 text-xs leading-relaxed">
+              <div className={`p-3.5 rounded-xl border ${
+                darkMode ? 'bg-[#1C2541]/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <h4 className="font-extrabold text-[#3A86FF] mb-1 flex items-center gap-1.5 text-xs">
+                  📌 Key Macro Takeaway
+                </h4>
+                <p className={darkMode ? 'text-slate-300' : 'text-slate-700'}>
+                  {selectedArticle.summary}
+                </p>
+              </div>
+
+              <div className={`p-3.5 rounded-xl border ${
+                darkMode ? 'bg-[#1C2541]/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <h4 className="font-extrabold text-emerald-400 mb-1 flex items-center gap-1.5 text-xs">
+                  📈 Market Impact & Sentiment
+                </h4>
+                <p className={darkMode ? 'text-slate-300' : 'text-slate-700'}>
+                  Directly influences broad market sentiment, rates outlook, and sector valuations. Macro traders should track immediate volume shifts across related equities and asset classes.
+                </p>
+              </div>
+
+              <div className={`p-3.5 rounded-xl border ${
+                darkMode ? 'bg-[#1C2541]/60 border-slate-800' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <h4 className="font-extrabold text-amber-400 mb-1 flex items-center gap-1.5 text-xs">
+                  👀 Key Metrics / What to Watch Next
+                </h4>
+                <p className={darkMode ? 'text-slate-300' : 'text-slate-700'}>
+                  Monitor upcoming central bank statements, official corporate press filings, and weekly institutional flow reports for confirmation of follow-through momentum.
+                </p>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-700/40">
+              <a
+                href={selectedArticle.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 bg-[#3A86FF] hover:bg-blue-600 text-white font-bold text-xs rounded-lg transition-all shadow-md flex items-center gap-1.5"
+              >
+                Read Full Source Article ↗
+              </a>
+
+              <button
+                onClick={() => setSelectedArticle(null)}
+                className={`px-3 py-2 text-xs font-semibold rounded-lg border transition-all ${
+                  darkMode ? 'border-slate-700 text-slate-300 hover:bg-slate-800' : 'border-slate-300 text-slate-700 hover:bg-slate-100'
+                }`}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
