@@ -11,63 +11,40 @@ export default function FloatingBottomBar({
   activeView,
   setActiveView,
 }: FloatingBottomBarProps) {
+  const tabs = [
+    { id: 'news', label: 'News', icon: '📰' },
+    { id: 'charts', label: 'Charts', icon: '📊' },
+    { id: 'calendar', label: 'Calendar', icon: '📅' },
+    { id: 'media', label: 'Live TV', icon: '📺' },
+    { id: 'calc', label: 'Risk', icon: '🧮' },
+  ];
+
   return (
-    <div className="fixed bottom-6 inset-x-0 sm:hidden flex justify-center z-50 pointer-events-none">
+    <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[92%] max-w-md">
       <div
-        className={`pointer-events-auto p-1.5 rounded-full border backdrop-blur-md shadow-2xl flex items-center gap-1 ${
+        className={`p-1.5 rounded-2xl border backdrop-blur-md shadow-2xl flex items-center justify-around ${
           darkMode
-            ? 'bg-[#0B132B]/90 border-slate-700 text-white'
-            : 'bg-white/90 border-slate-300 text-slate-900'
+            ? 'bg-[#0B132B]/85 border-slate-700/80 text-slate-200'
+            : 'bg-white/85 border-slate-200/80 text-slate-800'
         }`}
       >
-        <button
-          onClick={() => setActiveView('news')}
-          className={`px-3 py-1.5 rounded-full text-xs font-black transition-all ${
-            activeView === 'news'
-              ? 'bg-[#3A86FF] text-white shadow-md'
-              : darkMode
-              ? 'text-slate-400 hover:text-white'
-              : 'text-slate-600 hover:text-black'
-          }`}
-        >
-          📰
-        </button>
-        <button
-          onClick={() => setActiveView('charts')}
-          className={`px-3 py-1.5 rounded-full text-xs font-black transition-all ${
-            activeView === 'charts'
-              ? 'bg-[#3A86FF] text-white shadow-md'
-              : darkMode
-              ? 'text-slate-400 hover:text-white'
-              : 'text-slate-600 hover:text-black'
-          }`}
-        >
-          📊
-        </button>
-        <button
-          onClick={() => setActiveView('calendar')}
-          className={`px-3 py-1.5 rounded-full text-xs font-black transition-all ${
-            activeView === 'calendar'
-              ? 'bg-[#3A86FF] text-white shadow-md'
-              : darkMode
-              ? 'text-slate-400 hover:text-white'
-              : 'text-slate-600 hover:text-black'
-          }`}
-        >
-          📅
-        </button>
-        <button
-          onClick={() => setActiveView('media')}
-          className={`px-3 py-1.5 rounded-full text-xs font-black transition-all ${
-            activeView === 'media'
-              ? 'bg-[#3A86FF] text-white shadow-md'
-              : darkMode
-              ? 'text-slate-400 hover:text-white'
-              : 'text-slate-600 hover:text-black'
-          }`}
-        >
-          📺
-        </button>
+        {tabs.map((tab) => {
+          const isActive = activeView === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveView(tab.id as any)}
+              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
+                isActive
+                  ? 'bg-[#3A86FF] text-white shadow-md scale-105 font-bold'
+                  : 'opacity-70 hover:opacity-100'
+              }`}
+            >
+              <span className="text-base">{tab.icon}</span>
+              <span className="text-[10px] uppercase font-black tracking-tight">{tab.label}</span>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
