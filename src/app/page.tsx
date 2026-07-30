@@ -8,6 +8,7 @@ import LiquidityCharts from '@/components/news/LiquidityCharts';
 import SearchBar from '@/components/news/SearchBar';
 import ArticleGrid, { Article } from '@/components/news/ArticleGrid';
 import EconomicCalendar from '@/components/calendar/EconomicCalendar';
+import LiveTV from '@/components/media/LiveTV';
 
 const CATEGORIES = [
   { id: 'ALL', label: '🌐 All Feeds' },
@@ -27,7 +28,7 @@ const TICKER_DATA: TickerItem[] = [
 ];
 
 export default function Home() {
-  const [activeView, setActiveView] = useState<'news' | 'charts' | 'calendar'>('news');
+  const [activeView, setActiveView] = useState<'news' | 'charts' | 'calendar' | 'media'>('news');
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -155,6 +156,13 @@ export default function Home() {
               soundEnabled={soundEnabled}
               onToggleSound={() => setSoundEnabled(!soundEnabled)}
             />
+          </div>
+        )}
+
+        {/* View 4: LIVE TV BROADCASTS */}
+        {activeView === 'media' && (
+          <div className="animate-fadeIn">
+            <LiveTV darkMode={darkMode} />
           </div>
         )}
       </main>

@@ -2,8 +2,8 @@
 
 interface HeaderProps {
   darkMode: boolean;
-  activeView: 'news' | 'charts' | 'calendar';
-  setActiveView: (view: 'news' | 'charts' | 'calendar') => void;
+  activeView: 'news' | 'charts' | 'calendar' | 'media';
+  setActiveView: (view: 'news' | 'charts' | 'calendar' | 'media') => void;
   toggleTheme: () => void;
 }
 
@@ -75,7 +75,19 @@ export default function Header({
                 : 'text-slate-600 hover:text-black'
             }`}
           >
-            📅 Eco Calendar
+            📅 Calendar
+          </button>
+          <button
+            onClick={() => setActiveView('media')}
+            className={`px-3 py-1.5 text-xs font-extrabold rounded-lg transition-all ${
+              activeView === 'media'
+                ? 'bg-[#3A86FF] text-white shadow-sm'
+                : darkMode
+                ? 'text-slate-400 hover:text-white'
+                : 'text-slate-600 hover:text-black'
+            }`}
+          >
+            📺 Live TV
           </button>
         </div>
 
