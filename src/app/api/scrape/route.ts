@@ -6,7 +6,15 @@ import { summarizeArticle } from '@/lib/ai/groq';
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
-const parser = new Parser();
+const parser = new Parser({
+  customFields: {
+    item: [
+      ['media:content', 'mediaContent'],
+      ['media:thumbnail', 'mediaThumbnail'],
+      ['enclosure', 'enclosure'],
+    ],
+  },
+});
 
 const RSS_FEEDS = [
   'https://finance.yahoo.com/news/rssindex',
@@ -15,6 +23,20 @@ const RSS_FEEDS = [
 ];
 
 const SUPABASE_URL = 'https://mujxnzazkqqxpjbftvtb.supabase.co';
+
+// Helper to extract image URL from various RSS formats
+function extractImageUrl(item: any): string | null {
+  if (item.mediaContent?.$?.url) return item.mediaContent.$.url;
+  if (item.mediaThumbnail?.$?.url) return item.mediaThumbnail.$.url;
+  if (item.enclosure?.url) return item.enclosure.url;
+
+  // Fallback: extract <img> tag src from content HTML
+  const content = item.content || item['content:encoded'] || '';
+  const imgMatch = content.match(/<img[^>]+src="([^">]+)"/);
+  if (imgMatch && imgMatch[1]) return imgMatch[1];
+
+  return null;
+}
 
 export async function GET() {
   try {
@@ -44,7 +66,8 @@ export async function GET() {
         const items = feed.items || [];
         totalItemsFound += items.length;
 
-        for (const item of items.slice(0, 10)) {
+        // Take top 15 from each feed
+        for (const item of items.slice(0, 15)) {
           if (!item.title || !item.link) continue;
 
           const cleanUrl = item.link.trim();
@@ -69,20 +92,20 @@ export async function GET() {
             errors.push(`AI Error (${item.title.slice(0, 20)}...): ${aiErr.message}`);
           }
 
-          // We construct the article object without forcing 'sentiment' if the check constraint is strict
+          const extractedImage = extractImageUrl(item);
+
           const newArticle: Record<string, any> = {
             title: item.title,
             description: item.contentSnippet || item.title,
             content: item.content || item.contentSnippet || item.title,
             url: cleanUrl,
-            image_url: null,
+            image_url: extractedImage,
             source: feed.title || 'Financial News',
             category: 'Macro',
             summary: aiSummary,
             published_at: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
           };
 
-          // Try insertion without sentiment first
           let { data, error } = await supabase.from('articles').insert([newArticle]).select();
 
           if (error) {
@@ -97,11 +120,12 @@ export async function GET() {
       }
     }
 
+    // Increased limit to 60 articles
     const { data: allArticles } = await supabase
       .from('articles')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(30);
+      .limit(60);
 
     return NextResponse.json({
       message: 'Scrape finished',
