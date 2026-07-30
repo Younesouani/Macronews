@@ -120,27 +120,39 @@ export default function Home() {
       : 'bg-slate-100 text-slate-700 border border-slate-200';
   };
 
+  // Render a list of ticker items
+  const renderTickerItems = (keyPrefix: string) => (
+    <div key={keyPrefix} className="flex items-center gap-8 shrink-0">
+      {tickerData.map((item) => (
+        <div key={`${keyPrefix}-${item.symbol}`} className="flex items-center gap-1.5 shrink-0">
+          <span className="text-sm">{item.icon}</span>
+          <span className={darkMode ? 'text-slate-200' : 'text-slate-800'}>{item.name}</span>
+          <span className="font-mono">{item.price}</span>
+          <span className={`flex items-center text-[11px] font-bold ${
+            item.isUp ? 'text-emerald-500' : 'text-rose-500'
+          }`}>
+            {item.isUp ? '▲' : '▼'} {item.change}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
     <div className={`min-h-screen transition-colors duration-300 font-sans pb-12 ${
       darkMode ? 'bg-[#0B132B] text-slate-100' : 'bg-slate-50 text-slate-900'
     }`}>
-      {/* 1. Slim Custom Ticker Line with Icons, Prices, and Dynamic Up/Down Arrows */}
-      <div className={`border-b sticky top-0 z-50 backdrop-blur overflow-hidden ${
+      {/* 1. Moving/Scrolling Ticker Line with Icons and Dynamic Up/Down Arrows */}
+      <div className={`border-b sticky top-0 z-50 backdrop-blur overflow-hidden py-2 ${
         darkMode ? 'border-[#1C2541] bg-[#0B132B]/95' : 'border-slate-200 bg-white/95'
       }`}>
-        <div className="flex items-center gap-6 py-2 px-4 overflow-x-auto no-scrollbar text-xs font-semibold whitespace-nowrap">
-          {tickerData.map((item) => (
-            <div key={item.symbol} className="flex items-center gap-1.5 shrink-0">
-              <span className="text-sm">{item.icon}</span>
-              <span className={darkMode ? 'text-slate-200' : 'text-slate-800'}>{item.name}</span>
-              <span className="font-mono">{item.price}</span>
-              <span className={`flex items-center text-[11px] font-bold ${
-                item.isUp ? 'text-emerald-500' : 'text-rose-500'
-              }`}>
-                {item.isUp ? '▲' : '▼'} {item.change}
-              </span>
-            </div>
-          ))}
+        <div className="flex w-max animate-marquee text-xs font-semibold whitespace-nowrap">
+          {/* Duplicate render guarantees smooth infinite scrolling loop */}
+          {renderTickerItems('first')}
+          <div className="w-8 shrink-0"></div>
+          {renderTickerItems('second')}
+          <div className="w-8 shrink-0"></div>
+          {renderTickerItems('third')}
         </div>
       </div>
 
