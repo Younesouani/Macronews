@@ -30,7 +30,7 @@ export default function LiquidityCharts({ darkMode }: Props) {
       }`}
     >
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-xs sm:text-sm font-bold flex items-center gap-1.5 text-white">
+        <h2 className={`text-xs sm:text-sm font-bold flex items-center gap-1.5 ${darkMode ? 'text-white' : 'text-slate-900'}`}>
           <span>📊</span> Macro Liquidity Monitor
         </h2>
 
@@ -55,7 +55,7 @@ export default function LiquidityCharts({ darkMode }: Props) {
       </div>
 
       {/* Embedded Chart Frame */}
-      <div className="w-full h-[450px] sm:h-[500px] rounded-xl overflow-hidden border border-slate-700/40 bg-black/20">
+      <div className="w-full h-[400px] sm:h-[500px] rounded-xl overflow-hidden border border-slate-700/40 bg-black/20">
         <iframe
           key={`${activeSymbol}-${theme}`}
           title="TradingView Chart"
