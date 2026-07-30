@@ -12,25 +12,25 @@ interface StreamChannel {
 
 const STREAMS: StreamChannel[] = [
   {
-    id: 'yahoo',
-    name: 'Yahoo Finance Live',
-    badge: '📈 US Markets',
-    description: 'Real-time Wall Street market opening/closing coverage and CEO interviews.',
-    embedUrl: 'https://www.youtube.com/embed/live_stream?channel=UCEAZeUIeJs0ijQiqTC5W1gA',
-  },
-  {
     id: 'skynews',
     name: 'Sky News Live',
-    badge: '🌍 Global News',
-    description: '24/7 global breaking news and macroeconomic coverage.',
-    embedUrl: 'https://www.youtube.com/embed/9Auq9mYxfEE',
+    badge: '🌍 Global Markets',
+    description: '24/7 breaking global news and macroeconomic developments.',
+    embedUrl: 'https://www.youtube.com/embed/9Auq9mYxfEE?autoplay=1&mute=1',
   },
   {
     id: 'france24',
     name: 'France 24 English',
     badge: '💶 European Economy',
-    description: 'International & European market perspectives.',
-    embedUrl: 'https://www.youtube.com/embed/live_stream?channel=UCQfwfsi5gKwP54J4f58GYcQ',
+    description: 'International financial news and European market updates.',
+    embedUrl: 'https://www.youtube.com/embed/h3MuIUNCCzI?autoplay=1&mute=1',
+  },
+  {
+    id: 'dw',
+    name: 'DW News Live',
+    badge: '📊 Macro & Trade',
+    description: 'Global trade, economic analysis, and breaking macro events.',
+    embedUrl: 'https://www.youtube.com/embed/Lu413A23i_c?autoplay=1&mute=1',
   },
 ];
 
@@ -64,7 +64,7 @@ export default function LiveTV({ darkMode }: LiveTVProps) {
         ))}
       </div>
 
-      {/* Main Video Frame Container */}
+      {/* Video Container */}
       <div
         className={`rounded-2xl border overflow-hidden shadow-2xl p-2 ${
           darkMode ? 'bg-[#1C2541]/80 border-slate-800' : 'bg-white border-slate-200'
@@ -72,6 +72,7 @@ export default function LiveTV({ darkMode }: LiveTVProps) {
       >
         <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black">
           <iframe
+            key={activeStream.id}
             src={activeStream.embedUrl}
             title={activeStream.name}
             className="absolute top-0 left-0 w-full h-full border-0"
