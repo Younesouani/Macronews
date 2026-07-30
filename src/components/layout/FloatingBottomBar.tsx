@@ -2,8 +2,8 @@
 
 interface FloatingBottomBarProps {
   darkMode: boolean;
-  activeView: 'news' | 'charts';
-  setActiveView: (view: 'news' | 'charts') => void;
+  activeView: 'news' | 'charts' | 'calendar';
+  setActiveView: (view: 'news' | 'charts' | 'calendar') => void;
 }
 
 export default function FloatingBottomBar({
@@ -22,7 +22,7 @@ export default function FloatingBottomBar({
       >
         <button
           onClick={() => setActiveView('news')}
-          className={`px-4 py-2 rounded-full text-xs font-black transition-all ${
+          className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all ${
             activeView === 'news'
               ? 'bg-[#3A86FF] text-white shadow-md'
               : darkMode
@@ -34,7 +34,7 @@ export default function FloatingBottomBar({
         </button>
         <button
           onClick={() => setActiveView('charts')}
-          className={`px-4 py-2 rounded-full text-xs font-black transition-all ${
+          className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all ${
             activeView === 'charts'
               ? 'bg-[#3A86FF] text-white shadow-md'
               : darkMode
@@ -43,6 +43,18 @@ export default function FloatingBottomBar({
           }`}
         >
           📊 Charts
+        </button>
+        <button
+          onClick={() => setActiveView('calendar')}
+          className={`px-3.5 py-1.5 rounded-full text-xs font-black transition-all ${
+            activeView === 'calendar'
+              ? 'bg-[#3A86FF] text-white shadow-md'
+              : darkMode
+              ? 'text-slate-400 hover:text-white'
+              : 'text-slate-600 hover:text-black'
+          }`}
+        >
+          📅 Calendar
         </button>
       </div>
     </div>

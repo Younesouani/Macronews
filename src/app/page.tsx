@@ -7,6 +7,7 @@ import FloatingBottomBar from '@/components/layout/FloatingBottomBar';
 import LiquidityCharts from '@/components/news/LiquidityCharts';
 import SearchBar from '@/components/news/SearchBar';
 import ArticleGrid, { Article } from '@/components/news/ArticleGrid';
+import EconomicCalendar from '@/components/calendar/EconomicCalendar';
 
 const CATEGORIES = [
   { id: 'ALL', label: '🌐 All Feeds' },
@@ -26,13 +27,13 @@ const TICKER_DATA: TickerItem[] = [
 ];
 
 export default function Home() {
-  const [activeView, setActiveView] = useState<'news' | 'charts'>('news');
+  const [activeView, setActiveView] = useState<'news' | 'charts' | 'calendar'>('news');
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeCategory, setActiveCategory] = useState<string>('ALL');
   const [darkMode, setDarkMode] = useState<boolean>(true);
-  const [soundEnabled] = useState<boolean>(false);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const [, setSelectedArticle] = useState<Article | null>(null);
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -143,6 +144,17 @@ export default function Home() {
         {activeView === 'charts' && (
           <div className="animate-fadeIn">
             <LiquidityCharts darkMode={darkMode} />
+          </div>
+        )}
+
+        {/* View 3: ECONOMIC CALENDAR */}
+        {activeView === 'calendar' && (
+          <div className="animate-fadeIn">
+            <EconomicCalendar
+              darkMode={darkMode}
+              soundEnabled={soundEnabled}
+              onToggleSound={() => setSoundEnabled(!soundEnabled)}
+            />
           </div>
         )}
       </main>
