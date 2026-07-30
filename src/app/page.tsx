@@ -9,6 +9,7 @@ import SearchBar from '@/components/news/SearchBar';
 import ArticleGrid, { Article } from '@/components/news/ArticleGrid';
 import EconomicCalendar from '@/components/calendar/EconomicCalendar';
 import LiveTV from '@/components/media/LiveTV';
+import RiskCalculator from '@/components/calculator/RiskCalculator';
 
 const CATEGORIES = [
   { id: 'ALL', label: '🌐 All Feeds' },
@@ -28,7 +29,7 @@ const TICKER_DATA: TickerItem[] = [
 ];
 
 export default function Home() {
-  const [activeView, setActiveView] = useState<'news' | 'charts' | 'calendar' | 'media'>('news');
+  const [activeView, setActiveView] = useState<'news' | 'charts' | 'calendar' | 'media' | 'calc'>('news');
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -163,6 +164,13 @@ export default function Home() {
         {activeView === 'media' && (
           <div className="animate-fadeIn">
             <LiveTV darkMode={darkMode} />
+          </div>
+        )}
+
+        {/* View 5: RISK & POSITION SIZING CALCULATOR */}
+        {activeView === 'calc' && (
+          <div className="animate-fadeIn">
+            <RiskCalculator darkMode={darkMode} />
           </div>
         )}
       </main>

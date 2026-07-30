@@ -2,8 +2,8 @@
 
 interface HeaderProps {
   darkMode: boolean;
-  activeView: 'news' | 'charts' | 'calendar' | 'media';
-  setActiveView: (view: 'news' | 'charts' | 'calendar' | 'media') => void;
+  activeView: 'news' | 'charts' | 'calendar' | 'media' | 'calc';
+  setActiveView: (view: 'news' | 'charts' | 'calendar' | 'media' | 'calc') => void;
   toggleTheme: () => void;
 }
 
