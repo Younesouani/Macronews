@@ -21,12 +21,10 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<string>('ALL');
 
-  // Load articles automatically when entering the website
   useEffect(() => {
     fetchArticles();
   }, []);
 
-  // Embed TradingView Ticker Widget
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
@@ -86,7 +84,6 @@ export default function Home() {
     }
   };
 
-  // Filter articles based on Search + Sentiment
   const filteredArticles = articles.filter((art) => {
     const matchesSearch = 
       art.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -112,13 +109,11 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black text-slate-100 font-sans pb-12">
-      {/* 1. CNBC-Style Top Live Market Ticker */}
       <div className="border-b border-slate-800 bg-slate-950/80 sticky top-0 z-50 backdrop-blur">
         <div id="tv-ticker-container" className="w-full"></div>
       </div>
 
       <main className="max-w-5xl mx-auto px-4 pt-6 space-y-6">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-white">
@@ -139,9 +134,7 @@ export default function Home() {
           </button>
         </div>
 
-        {/* 2. Controls: Search Bar & Sentiment Filters */}
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
-          {/* Search Input */}
           <div className="relative w-full md:w-72">
             <input
               type="text"
@@ -152,7 +145,6 @@ export default function Home() {
             />
           </div>
 
-          {/* Filter Pills */}
           <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1">
             {['ALL', 'BULLISH', 'BEARISH', 'NEUTRAL'].map((filter) => (
               <button
@@ -170,14 +162,12 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Loading Indicator */}
         {loading && (
           <div className="text-center py-12 text-slate-500 text-sm">
             Loading latest macro articles...
           </div>
         )}
 
-        {/* 3. Articles Feed Grid */}
         {!loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredArticles.map((article) => (
@@ -185,7 +175,6 @@ export default function Home() {
                 key={article.id || article.url}
                 className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition-all space-y-3"
               >
-                {/* Optional Image */}
                 {article.image_url && (
                   <div className="w-full h-44 rounded-lg overflow-hidden bg-slate-950">
                     <img
@@ -227,7 +216,6 @@ export default function Home() {
                   </p>
                 </div>
 
-                {/* Footer Controls */}
                 <div className="flex items-center justify-between pt-2 border-t border-slate-800/50 text-[11px] text-slate-500">
                   <span>
                     {article.published_at
