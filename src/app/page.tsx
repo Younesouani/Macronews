@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from 'react';
 import LiquidityCharts from "@/components/news/LiquidityCharts";
-import LiquidityCharts from '@/components/LiquidityCharts';
 
 interface Article {
   id: string;
@@ -274,7 +273,7 @@ export default function Home() {
         {/* View 2: LIQUIDITY CHARTS */}
         {activeView === 'charts' && (
           <div className="animate-fadeIn">
-            <LiquidityCharts darkMode={darkMode} />
+            {showCharts && <LiquidityCharts darkMode={darkMode} />}
           </div>
         )}
       </main>
