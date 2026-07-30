@@ -32,21 +32,17 @@ export default function Home() {
   const [darkMode, setDarkMode] = useState<boolean>(true);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
 
-  // Audio Reference (Using a free royalty-free news chime asset)
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // Initialize standard subtle news alert sound
     audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-    audioRef.current.volume = 0.3; // Gentle 30% volume
+    audioRef.current.volume = 0.3;
   }, []);
 
   const playNewsSound = () => {
     if (soundEnabled && audioRef.current) {
       audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {
-        // Handle standard mobile browser autoplay restrictions silently
-      });
+      audioRef.current.play().catch(() => {});
     }
   };
 
@@ -110,26 +106,35 @@ export default function Home() {
     }
   };
 
+  // Helper function to extract normalized sentiment cleanly
+  const parseSentiment = (sentiment?: string) => {
+    if (!sentiment) return 'NEUTRAL';
+    const s = sentiment.trim().toUpperCase();
+    if (s.includes('BULL') || s.includes('POS')) return 'BULLISH';
+    if (s.includes('BEAR') || s.includes('NEG')) return 'BEARISH';
+    return 'NEUTRAL';
+  };
+
   const filteredArticles = articles.filter((art) => {
     const matchesSearch = 
       art.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       art.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       art.source?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    const artSentiment = (art.sentiment || 'neutral').toUpperCase();
+    const artSentiment = parseSentiment(art.sentiment);
     const matchesFilter = activeFilter === 'ALL' || artSentiment === activeFilter;
 
     return matchesSearch && matchesFilter;
   });
 
   const getSentimentBadge = (sentiment?: string) => {
-    const val = (sentiment || 'neutral').toUpperCase();
-    if (val === 'BULLISH' || val === 'POSITIVE') {
+    const val = parseSentiment(sentiment);
+    if (val === 'BULLISH') {
       return darkMode 
         ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
         : 'bg-emerald-50 text-emerald-700 border border-emerald-200';
     }
-    if (val === 'BEARISH' || val === 'NEGATIVE') {
+    if (val === 'BEARISH') {
       return darkMode
         ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
         : 'bg-rose-50 text-rose-700 border border-rose-200';
@@ -195,7 +200,6 @@ export default function Home() {
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Audio Toggle Button */}
             <button
               onClick={() => {
                 const nextSound = !soundEnabled;
@@ -215,7 +219,6 @@ export default function Home() {
               {soundEnabled ? '🔔 Sound ON' : '🔕 Sound OFF'}
             </button>
 
-            {/* Dark / Light Toggle */}
             <button
               onClick={toggleTheme}
               className={`px-3 py-2 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 ${
@@ -282,76 +285,79 @@ export default function Home() {
         {/* Articles Feed */}
         {!loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {filteredArticles.map((article) => (
-              <div
-                key={article.id || article.url}
-                className={`rounded-xl p-4 flex flex-col justify-between border transition-all space-y-3 ${
-                  darkMode
-                    ? 'bg-[#1C2541]/70 border-slate-800 hover:border-slate-700'
-                    : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm'
-                }`}
-              >
-                {article.image_url && (
-                  <div className="w-full h-40 rounded-lg overflow-hidden bg-slate-900">
-                    <img
-                      src={article.image_url}
-                      alt={article.title}
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                      onError={(e) => {
-                        (e.target as HTMLElement).style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
+            {filteredArticles.map((article) => {
+              const displaySentiment = parseSentiment(article.sentiment);
+              return (
+                <div
+                  key={article.id || article.url}
+                  className={`rounded-xl p-4 flex flex-col justify-between border transition-all space-y-3 ${
+                    darkMode
+                      ? 'bg-[#1C2541]/70 border-slate-800 hover:border-slate-700'
+                      : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm'
+                  }`}
+                >
+                  {article.image_url && (
+                    <div className="w-full h-40 rounded-lg overflow-hidden bg-slate-900">
+                      <img
+                        src={article.image_url}
+                        alt={article.title}
+                        className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
 
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className={`text-[10px] uppercase tracking-wider font-extrabold truncate ${
-                      darkMode ? 'text-slate-400' : 'text-slate-500'
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className={`text-[10px] uppercase tracking-wider font-extrabold truncate ${
+                        darkMode ? 'text-slate-400' : 'text-slate-500'
+                      }`}>
+                        {article.source}
+                      </span>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${getSentimentBadge(article.sentiment)}`}>
+                        {displaySentiment}
+                      </span>
+                    </div>
+
+                    <a
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`text-base font-bold line-clamp-2 transition-colors ${
+                        darkMode ? 'text-white hover:text-[#3A86FF]' : 'text-slate-900 hover:text-[#3A86FF]'
+                      }`}
+                    >
+                      {article.title}
+                    </a>
+
+                    <p className={`text-xs mt-2 line-clamp-3 leading-relaxed ${
+                      darkMode ? 'text-slate-300' : 'text-slate-600'
                     }`}>
-                      {article.source}
-                    </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${getSentimentBadge(article.sentiment)}`}>
-                      {(article.sentiment || 'NEUTRAL').toUpperCase()}
-                    </span>
+                      {article.summary}
+                    </p>
                   </div>
 
-                  <a
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`text-base font-bold line-clamp-2 transition-colors ${
-                      darkMode ? 'text-white hover:text-[#3A86FF]' : 'text-slate-900 hover:text-[#3A86FF]'
-                    }`}
-                  >
-                    {article.title}
-                  </a>
-
-                  <p className={`text-xs mt-2 line-clamp-3 leading-relaxed ${
-                    darkMode ? 'text-slate-300' : 'text-slate-600'
+                  <div className={`flex items-center justify-between pt-2 border-t text-[11px] ${
+                    darkMode ? 'border-slate-700/50 text-slate-400' : 'border-slate-100 text-slate-500'
                   }`}>
-                    {article.summary}
-                  </p>
-                </div>
+                    <span>
+                      {article.published_at
+                        ? new Date(article.published_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                        : 'Recently'}
+                    </span>
 
-                <div className={`flex items-center justify-between pt-2 border-t text-[11px] ${
-                  darkMode ? 'border-slate-700/50 text-slate-400' : 'border-slate-100 text-slate-500'
-                }`}>
-                  <span>
-                    {article.published_at
-                      ? new Date(article.published_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                      : 'Recently'}
-                  </span>
-
-                  <button
-                    onClick={() => handleShare(article)}
-                    className="hover:text-[#3A86FF] transition-colors flex items-center gap-1 font-semibold"
-                  >
-                    🔗 Share
-                  </button>
+                    <button
+                      onClick={() => handleShare(article)}
+                      className="hover:text-[#3A86FF] transition-colors flex items-center gap-1 font-semibold"
+                    >
+                      🔗 Share
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
