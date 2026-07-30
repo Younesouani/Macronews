@@ -20,12 +20,33 @@ export default function Home() {
   const [syncing, setSyncing] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<string>('ALL');
+  const [darkMode, setDarkMode] = useState<boolean>(true);
 
+  // Read saved theme from localStorage on load
   useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme === 'light') {
+      setDarkMode(false);
+    } else {
+      setDarkMode(true);
+    }
     fetchArticles();
   }, []);
 
+  // Toggle Dark / Light Theme
+  const toggleTheme = () => {
+    const newMode = !darkMode;
+    setDarkMode(newMode);
+    localStorage.setItem('theme', newMode ? 'dark' : 'light');
+  };
+
+  // Embed Compact TradingView Ticker Widget
   useEffect(() => {
+    const container = document.getElementById('tv-ticker-container');
+    if (!container) return;
+
+    container.innerHTML = ''; // Re-render widget clean on theme change
+
     const script = document.createElement('script');
     script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
     script.async = true;
@@ -38,17 +59,14 @@ export default function Home() {
         { proName: 'FX_IDC:GBPUSD', title: 'GBP/USD' }
       ],
       showSymbolLogo: true,
-      colorTheme: 'dark',
+      colorTheme: darkMode ? 'dark' : 'light',
       isTransparent: true,
-      displayMode: 'adaptive',
+      displayMode: 'compact',
       locale: 'en'
     });
 
-    const container = document.getElementById('tv-ticker-container');
-    if (container && container.childElementCount === 0) {
-      container.appendChild(script);
-    }
-  }, []);
+    container.appendChild(script);
+  }, [darkMode]);
 
   const fetchArticles = async () => {
     setLoading(true);
@@ -80,7 +98,7 @@ export default function Home() {
       }).catch(() => {});
     } else {
       navigator.clipboard.writeText(article.url);
-      alert('Article link copied to clipboard!');
+      alert('Article link copied!');
     }
   };
 
@@ -99,49 +117,83 @@ export default function Home() {
   const getSentimentBadge = (sentiment?: string) => {
     const val = (sentiment || 'neutral').toUpperCase();
     if (val === 'BULLISH' || val === 'POSITIVE') {
-      return 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30';
+      return darkMode 
+        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+        : 'bg-emerald-50 text-emerald-700 border border-emerald-200';
     }
     if (val === 'BEARISH' || val === 'NEGATIVE') {
-      return 'bg-rose-500/10 text-rose-400 border border-rose-500/30';
+      return darkMode
+        ? 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+        : 'bg-rose-50 text-rose-700 border border-rose-200';
     }
-    return 'bg-slate-800 text-slate-300 border border-slate-700';
+    return darkMode
+      ? 'bg-slate-800 text-slate-300 border border-slate-700'
+      : 'bg-slate-100 text-slate-700 border border-slate-200';
   };
 
   return (
-    <div className="min-h-screen bg-black text-slate-100 font-sans pb-12">
-      <div className="border-b border-slate-800 bg-slate-950/80 sticky top-0 z-50 backdrop-blur">
-        <div id="tv-ticker-container" className="w-full"></div>
+    <div className={`min-h-screen transition-colors duration-300 font-sans pb-12 ${
+      darkMode ? 'bg-[#0B132B] text-slate-100' : 'bg-slate-50 text-slate-900'
+    }`}>
+      {/* 1. Slim, Compact Top Market Ticker Bar */}
+      <div className={`border-b sticky top-0 z-50 backdrop-blur ${
+        darkMode ? 'border-[#1C2541] bg-[#0B132B]/90' : 'border-slate-200 bg-white/90'
+      }`}>
+        <div id="tv-ticker-container" className="w-full h-[36px] overflow-hidden"></div>
       </div>
 
       <main className="max-w-5xl mx-auto px-4 pt-6 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+        {/* Top Header Navigation */}
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-5 ${
+          darkMode ? 'border-[#1C2541]' : 'border-slate-200'
+        }`}>
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-white">
-              MACRO<span className="text-emerald-500">NEWS</span>
+            <h1 className="text-3xl font-black tracking-tight flex items-center gap-2">
+              <span className={darkMode ? 'text-white' : 'text-[#0B132B]'}>MACRO</span>
+              <span className="text-[#3A86FF]">NEWS</span>
             </h1>
-            <p className="text-xs text-slate-400 mt-1 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              Institutional-grade macro catalyst feed
+            <p className={`text-xs mt-1 flex items-center gap-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+              <span className="w-2 h-2 rounded-full bg-[#3A86FF] animate-pulse"></span>
+              Navy & White Catalyst Intelligence Feed
             </p>
           </div>
 
-          <button
-            onClick={handleSync}
-            disabled={syncing}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm rounded-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {syncing ? 'Syncing...' : '⚡ Sync Latest Feed'}
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Dark / Light Mode Switch */}
+            <button
+              onClick={toggleTheme}
+              className={`px-3 py-2 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 ${
+                darkMode
+                  ? 'bg-[#1C2541] text-amber-300 border-slate-700 hover:bg-slate-800'
+                  : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 shadow-sm'
+              }`}
+            >
+              {darkMode ? '☀️ Light' : '🌙 Dark'}
+            </button>
+
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="px-4 py-2 bg-[#3A86FF] hover:bg-blue-600 text-white font-medium text-sm rounded-lg transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
+            >
+              {syncing ? 'Syncing...' : '⚡ Sync Feed'}
+            </button>
+          </div>
         </div>
 
+        {/* Controls: Search Bar & Sentiment Filters */}
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-72">
             <input
               type="text"
-              placeholder="Search news or tickers..."
+              placeholder="Search macro topics..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-sm rounded-lg px-4 py-2 focus:outline-none focus:border-emerald-500 transition-colors"
+              className={`w-full text-sm rounded-lg px-4 py-2 border focus:outline-none focus:border-[#3A86FF] transition-colors ${
+                darkMode
+                  ? 'bg-[#1C2541] border-slate-700 text-slate-100 placeholder-slate-400'
+                  : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400 shadow-sm'
+              }`}
             />
           </div>
 
@@ -150,10 +202,12 @@ export default function Home() {
               <button
                 key={filter}
                 onClick={() => setActiveFilter(filter)}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-md border transition-all ${
+                className={`px-3 py-1.5 text-xs font-bold rounded-md border transition-all ${
                   activeFilter === filter
-                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
-                    : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-white'
+                    ? 'bg-[#3A86FF] text-white border-[#3A86FF]'
+                    : darkMode
+                    ? 'bg-[#1C2541] text-slate-300 border-slate-700 hover:text-white'
+                    : 'bg-white text-slate-600 border-slate-200 hover:text-slate-900 shadow-sm'
                 }`}
               >
                 {filter}
@@ -162,21 +216,27 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Loading */}
         {loading && (
-          <div className="text-center py-12 text-slate-500 text-sm">
-            Loading latest macro articles...
+          <div className={`text-center py-12 text-sm ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
+            Loading articles...
           </div>
         )}
 
+        {/* Articles Feed */}
         {!loading && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredArticles.map((article) => (
               <div
                 key={article.id || article.url}
-                className="bg-slate-900/60 border border-slate-800/80 rounded-xl p-4 flex flex-col justify-between hover:border-slate-700 transition-all space-y-3"
+                className={`rounded-xl p-4 flex flex-col justify-between border transition-all space-y-3 ${
+                  darkMode
+                    ? 'bg-[#1C2541]/70 border-slate-800 hover:border-slate-700'
+                    : 'bg-white border-slate-200 hover:border-slate-300 shadow-sm'
+                }`}
               >
                 {article.image_url && (
-                  <div className="w-full h-44 rounded-lg overflow-hidden bg-slate-950">
+                  <div className="w-full h-40 rounded-lg overflow-hidden bg-slate-900">
                     <img
                       src={article.image_url}
                       alt={article.title}
@@ -190,14 +250,12 @@ export default function Home() {
 
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold truncate">
+                    <span className={`text-[10px] uppercase tracking-wider font-extrabold truncate ${
+                      darkMode ? 'text-slate-400' : 'text-slate-500'
+                    }`}>
                       {article.source}
                     </span>
-                    <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${getSentimentBadge(
-                        article.sentiment
-                      )}`}
-                    >
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${getSentimentBadge(article.sentiment)}`}>
                       {(article.sentiment || 'NEUTRAL').toUpperCase()}
                     </span>
                   </div>
@@ -206,41 +264,38 @@ export default function Home() {
                     href={article.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-base font-bold text-slate-100 hover:text-emerald-400 transition-colors line-clamp-2"
+                    className={`text-base font-bold line-clamp-2 transition-colors ${
+                      darkMode ? 'text-white hover:text-[#3A86FF]' : 'text-slate-900 hover:text-[#3A86FF]'
+                    }`}
                   >
                     {article.title}
                   </a>
 
-                  <p className="text-xs text-slate-400 mt-2 line-clamp-3 leading-relaxed">
+                  <p className={`text-xs mt-2 line-clamp-3 leading-relaxed ${
+                    darkMode ? 'text-slate-300' : 'text-slate-600'
+                  }`}>
                     {article.summary}
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-slate-800/50 text-[11px] text-slate-500">
+                <div className={`flex items-center justify-between pt-2 border-t text-[11px] ${
+                  darkMode ? 'border-slate-700/50 text-slate-400' : 'border-slate-100 text-slate-500'
+                }`}>
                   <span>
                     {article.published_at
-                      ? new Date(article.published_at).toLocaleTimeString([], {
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })
+                      ? new Date(article.published_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                       : 'Recently'}
                   </span>
 
                   <button
                     onClick={() => handleShare(article)}
-                    className="hover:text-emerald-400 transition-colors flex items-center gap-1"
+                    className="hover:text-[#3A86FF] transition-colors flex items-center gap-1 font-semibold"
                   >
                     🔗 Share
                   </button>
                 </div>
               </div>
             ))}
-          </div>
-        )}
-
-        {!loading && filteredArticles.length === 0 && (
-          <div className="text-center py-12 text-slate-500 text-sm">
-            No articles found matching your criteria.
           </div>
         )}
       </main>
