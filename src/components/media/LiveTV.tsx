@@ -1,36 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import Hls from 'hls.js';
 
 interface StreamChannel {
   id: string;
   name: string;
   badge: string;
   description: string;
-  embedUrl: string;
+  hlsUrl: string;
+  fallbackEmbed?: string;
 }
 
 const STREAMS: StreamChannel[] = [
   {
-    id: 'skynews',
-    name: 'Sky News Live',
+    id: 'aljazeera',
+    name: 'Al Jazeera English',
     badge: '🌍 Global News',
-    description: '24/7 global breaking news, financial markets, and world reports.',
-    embedUrl: 'https://www.youtube-nocookie.com/embed/9Auq9mYxfEE?autoplay=1&mute=1',
+    description: 'Direct 24/7 global economy and news broadcast stream.',
+    hlsUrl: 'https://live-hls-web-aje.getaj.net/AJE/index.m3u8',
   },
   {
-    id: 'france24',
-    name: 'France 24 English',
-    badge: '💶 European Economy',
-    description: 'International & European market perspectives, policy and news.',
-    embedUrl: 'https://www.youtube-nocookie.com/embed/h3MuIUNCCzI?autoplay=1&mute=1',
-  },
-  {
-    id: 'dw',
-    name: 'DW News Live',
-    badge: '📊 Macro & Trade',
-    description: 'Global trade, macroeconomics, and breaking international events.',
-    embedUrl: 'https://www.youtube-nocookie.com/embed/Lu413A23i_c?autoplay=1&mute=1',
+    id: 'dw_hls',
+    name: 'Deutsche Welle (DW)',
+    badge: '📊 Trade & Macro',
+    description: 'European economic updates and international coverage.',
+    hlsUrl: 'https://dwamdstream102.akamaized.net/hls/live/2015525/dwstream102/index.m3u8',
   },
 ];
 
@@ -40,10 +35,35 @@ interface LiveTVProps {
 
 export default function LiveTV({ darkMode }: LiveTVProps) {
   const [activeStream, setActiveStream] = useState<StreamChannel>(STREAMS[0]);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (Hls.isSupported()) {
+      const hls = new Hls();
+      hls.loadSource(activeStream.hlsUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        video.play().catch(() => {});
+      });
+
+      return () => {
+        hls.destroy();
+      };
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      // Native support for Safari / iOS
+      video.src = activeStream.hlsUrl;
+      video.addEventListener('loadedmetadata', () => {
+        video.play().catch(() => {});
+      });
+    }
+  }, [activeStream]);
 
   return (
     <div className="space-y-6">
-      {/* Stream Selector Bar */}
+      {/* Stream Selection Bar */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
         {STREAMS.map((stream) => (
           <button
@@ -64,24 +84,23 @@ export default function LiveTV({ darkMode }: LiveTVProps) {
         ))}
       </div>
 
-      {/* Main Video Frame Container */}
+      {/* HTML5 Native Live Player Container */}
       <div
         className={`rounded-2xl border overflow-hidden shadow-2xl p-2 ${
           darkMode ? 'bg-[#1C2541]/80 border-slate-800' : 'bg-white border-slate-200'
         }`}
       >
         <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-black">
-          <iframe
-            key={activeStream.id}
-            src={activeStream.embedUrl}
-            title={activeStream.name}
-            className="absolute top-0 left-0 w-full h-full border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          ></iframe>
+          <video
+            ref={videoRef}
+            controls
+            playsInline
+            muted
+            className="w-full h-full object-contain"
+          ></video>
         </div>
 
-        {/* Video Info Footer */}
+        {/* Stream Details */}
         <div className="p-3 flex items-center justify-between gap-4">
           <div>
             <h3 className="text-sm font-bold flex items-center gap-2">
@@ -93,7 +112,7 @@ export default function LiveTV({ darkMode }: LiveTVProps) {
             </p>
           </div>
           <span className="text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-md bg-rose-500/10 text-rose-500 border border-rose-500/20 shrink-0">
-            🔴 LIVE BROADCAST
+            🔴 DIRECT HLS STREAM
           </span>
         </div>
       </div>
