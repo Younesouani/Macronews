@@ -1,0 +1,8 @@
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+
+export async function createClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mujxnzazkqqxpjbftvtb.supabase.co';
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
+
+  return createSupabaseClient(url, key);
+}
