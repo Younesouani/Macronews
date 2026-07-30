@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 interface Article {
   id: string;
@@ -30,8 +30,26 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [activeFilter, setActiveFilter] = useState<string>('ALL');
   const [darkMode, setDarkMode] = useState<boolean>(true);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
 
-  // Custom Liquidity & Index Ticker Data
+  // Audio Reference (Using a free royalty-free news chime asset)
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    // Initialize standard subtle news alert sound
+    audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+    audioRef.current.volume = 0.3; // Gentle 30% volume
+  }, []);
+
+  const playNewsSound = () => {
+    if (soundEnabled && audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play().catch(() => {
+        // Handle standard mobile browser autoplay restrictions silently
+      });
+    }
+  };
+
   const tickerData: TickerItem[] = [
     { symbol: 'SPX', name: 'S&P 500', price: '5,432.10', change: '+0.45%', isUp: true, icon: '📈' },
     { symbol: 'NDX', name: 'NASDAQ', price: '17,890.50', change: '+0.82%', isUp: true, icon: '💻' },
@@ -64,6 +82,7 @@ export default function Home() {
       const data = await res.json();
       if (data.articles) {
         setArticles(data.articles);
+        playNewsSound();
       }
     } catch (err) {
       console.error('Failed to load articles:', err);
@@ -124,7 +143,6 @@ export default function Home() {
     <div className={`min-h-screen transition-colors duration-300 font-sans pb-12 ${
       darkMode ? 'bg-[#0B132B] text-slate-100' : 'bg-slate-50 text-slate-900'
     }`}>
-      {/* Scope Keyframe Animation safely inside page without modifying globals.css */}
       <style jsx global>{`
         @keyframes ticker-slide {
           0% { transform: translateX(0); }
@@ -140,12 +158,11 @@ export default function Home() {
         }
       `}</style>
 
-      {/* 1. Scrolling Ticker Bar with Liquidity Icons and Color Up/Down Arrows */}
+      {/* Moving Ticker Line */}
       <div className={`border-b sticky top-0 z-50 backdrop-blur overflow-hidden py-2 ${
         darkMode ? 'border-[#1C2541] bg-[#0B132B]/95' : 'border-slate-200 bg-white/95'
       }`}>
         <div className="ticker-track text-xs font-semibold whitespace-nowrap flex gap-8">
-          {/* Loop twice for smooth continuous infinite scrolling */}
           {[...tickerData, ...tickerData].map((item, idx) => (
             <div key={`${item.symbol}-${idx}`} className="flex items-center gap-1.5 shrink-0">
               <span className="text-sm">{item.icon}</span>
@@ -177,7 +194,28 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {/* Audio Toggle Button */}
+            <button
+              onClick={() => {
+                const nextSound = !soundEnabled;
+                setSoundEnabled(nextSound);
+                if (nextSound && audioRef.current) {
+                  audioRef.current.play().catch(() => {});
+                }
+              }}
+              className={`px-3 py-2 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 ${
+                soundEnabled
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                  : darkMode
+                  ? 'bg-[#1C2541] text-slate-400 border-slate-700'
+                  : 'bg-white text-slate-500 border-slate-300'
+              }`}
+            >
+              {soundEnabled ? '🔔 Sound ON' : '🔕 Sound OFF'}
+            </button>
+
+            {/* Dark / Light Toggle */}
             <button
               onClick={toggleTheme}
               className={`px-3 py-2 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 ${
@@ -199,7 +237,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Search Bar & Sentiment Filters */}
+        {/* Controls: Search Bar & Sentiment Filters */}
         <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
           <div className="relative w-full md:w-72">
             <input
