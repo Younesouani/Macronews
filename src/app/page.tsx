@@ -14,6 +14,15 @@ interface Article {
   category?: string;
 }
 
+interface TickerItem {
+  symbol: string;
+  name: string;
+  price: string;
+  change: string;
+  isUp: boolean;
+  icon: string;
+}
+
 export default function Home() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -22,7 +31,16 @@ export default function Home() {
   const [activeFilter, setActiveFilter] = useState<string>('ALL');
   const [darkMode, setDarkMode] = useState<boolean>(true);
 
-  // Read saved theme from localStorage on load
+  // Custom Liquidity & Index Ticker Data
+  const tickerData: TickerItem[] = [
+    { symbol: 'SPX', name: 'S&P 500', price: '5,432.10', change: '+0.45%', isUp: true, icon: '📈' },
+    { symbol: 'NDX', name: 'NASDAQ', price: '17,890.50', change: '+0.82%', isUp: true, icon: '💻' },
+    { symbol: 'XAU', name: 'GOLD', price: '$2,385.40', change: '-0.15%', isUp: false, icon: '🥇' },
+    { symbol: 'EUR', name: 'EUR/USD', price: '1.0854', change: '+0.08%', isUp: true, icon: '💶' },
+    { symbol: 'GBP', name: 'GBP/USD', price: '1.2740', change: '-0.21%', isUp: false, icon: '💷' },
+    { symbol: 'OIL', name: 'BRENT', price: '$82.45', change: '+1.12%', isUp: true, icon: '🛢️' },
+  ];
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'light') {
@@ -33,40 +51,11 @@ export default function Home() {
     fetchArticles();
   }, []);
 
-  // Toggle Dark / Light Theme
   const toggleTheme = () => {
     const newMode = !darkMode;
     setDarkMode(newMode);
     localStorage.setItem('theme', newMode ? 'dark' : 'light');
   };
-
-  // Embed Compact TradingView Ticker Widget
-  useEffect(() => {
-    const container = document.getElementById('tv-ticker-container');
-    if (!container) return;
-
-    container.innerHTML = ''; // Re-render widget clean on theme change
-
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      symbols: [
-        { proName: 'FOREXCOM:SPXUSD', title: 'S&P 500' },
-        { proName: 'FOREXCOM:NSXUSD', title: 'NASDAQ' },
-        { proName: 'OANDA:XAUUSD', title: 'Gold' },
-        { proName: 'FX_IDC:EURUSD', title: 'EUR/USD' },
-        { proName: 'FX_IDC:GBPUSD', title: 'GBP/USD' }
-      ],
-      showSymbolLogo: true,
-      colorTheme: darkMode ? 'dark' : 'light',
-      isTransparent: true,
-      displayMode: 'compact',
-      locale: 'en'
-    });
-
-    container.appendChild(script);
-  }, [darkMode]);
 
   const fetchArticles = async () => {
     setLoading(true);
@@ -135,15 +124,28 @@ export default function Home() {
     <div className={`min-h-screen transition-colors duration-300 font-sans pb-12 ${
       darkMode ? 'bg-[#0B132B] text-slate-100' : 'bg-slate-50 text-slate-900'
     }`}>
-      {/* 1. Slim, Compact Top Market Ticker Bar */}
-      <div className={`border-b sticky top-0 z-50 backdrop-blur ${
-        darkMode ? 'border-[#1C2541] bg-[#0B132B]/90' : 'border-slate-200 bg-white/90'
+      {/* 1. Slim Custom Ticker Line with Icons, Prices, and Dynamic Up/Down Arrows */}
+      <div className={`border-b sticky top-0 z-50 backdrop-blur overflow-hidden ${
+        darkMode ? 'border-[#1C2541] bg-[#0B132B]/95' : 'border-slate-200 bg-white/95'
       }`}>
-        <div id="tv-ticker-container" className="w-full h-[36px] overflow-hidden"></div>
+        <div className="flex items-center gap-6 py-2 px-4 overflow-x-auto no-scrollbar text-xs font-semibold whitespace-nowrap">
+          {tickerData.map((item) => (
+            <div key={item.symbol} className="flex items-center gap-1.5 shrink-0">
+              <span className="text-sm">{item.icon}</span>
+              <span className={darkMode ? 'text-slate-200' : 'text-slate-800'}>{item.name}</span>
+              <span className="font-mono">{item.price}</span>
+              <span className={`flex items-center text-[11px] font-bold ${
+                item.isUp ? 'text-emerald-500' : 'text-rose-500'
+              }`}>
+                {item.isUp ? '▲' : '▼'} {item.change}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
 
       <main className="max-w-5xl mx-auto px-4 pt-6 space-y-6">
-        {/* Top Header Navigation */}
+        {/* Header Navigation */}
         <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-5 ${
           darkMode ? 'border-[#1C2541]' : 'border-slate-200'
         }`}>
@@ -154,12 +156,11 @@ export default function Home() {
             </h1>
             <p className={`text-xs mt-1 flex items-center gap-2 ${darkMode ? 'text-slate-400' : 'text-slate-500'}`}>
               <span className="w-2 h-2 rounded-full bg-[#3A86FF] animate-pulse"></span>
-              Navy & White Catalyst Intelligence Feed
+              Institutional-grade macro catalyst feed
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            {/* Dark / Light Mode Switch */}
             <button
               onClick={toggleTheme}
               className={`px-3 py-2 text-xs font-semibold rounded-lg border transition-all flex items-center gap-1.5 ${
