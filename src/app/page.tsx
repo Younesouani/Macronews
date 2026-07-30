@@ -5,18 +5,8 @@ import TickerTape, { TickerItem } from '@/components/layout/TickerTape';
 import Header from '@/components/layout/Header';
 import FloatingBottomBar from '@/components/layout/FloatingBottomBar';
 import LiquidityCharts from '@/components/news/LiquidityCharts';
-
-interface Article {
-  id: string;
-  title: string;
-  summary: string;
-  url: string;
-  image_url?: string | null;
-  source: string;
-  published_at: string;
-  sentiment?: string;
-  category?: string;
-}
+import SearchBar from '@/components/news/SearchBar';
+import ArticleGrid, { Article } from '@/components/news/ArticleGrid';
 
 const CATEGORIES = [
   { id: 'ALL', label: '🌐 All Feeds' },
@@ -118,11 +108,9 @@ export default function Home() {
         darkMode ? 'bg-[#0B132B] text-slate-100' : 'bg-slate-50 text-slate-900'
       }`}
     >
-      {/* 1. Market Ticker */}
       <TickerTape darkMode={darkMode} data={TICKER_DATA} />
 
       <main className="max-w-5xl mx-auto px-4 pt-6 space-y-6">
-        {/* 2. Top Header & Controls */}
         <Header
           darkMode={darkMode}
           activeView={activeView}
@@ -130,80 +118,28 @@ export default function Home() {
           toggleTheme={toggleTheme}
         />
 
-        {/* 3. View 1: NEWS FEED */}
+        {/* View 1: NEWS FEED */}
         {activeView === 'news' && (
           <div className="space-y-6 animate-fadeIn">
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Search macro topics, ticker symbols, or keywords..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className={`w-full text-sm rounded-xl px-4 py-3 border focus:outline-none focus:border-[#3A86FF] ${
-                  darkMode
-                    ? 'bg-[#1C2541] border-slate-700 text-slate-100'
-                    : 'bg-white border-slate-300 text-slate-900'
-                }`}
-              />
+            <SearchBar
+              darkMode={darkMode}
+              searchQuery={searchQuery}
+              setSearchQuery={setSearchQuery}
+              activeCategory={activeCategory}
+              setActiveCategory={setActiveCategory}
+              categories={CATEGORIES}
+            />
 
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
-                {CATEGORIES.map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setActiveCategory(cat.id)}
-                    className={`px-3.5 py-2 text-xs font-bold rounded-lg border whitespace-nowrap shrink-0 ${
-                      activeCategory === cat.id
-                        ? 'bg-[#3A86FF] text-white border-[#3A86FF]'
-                        : darkMode
-                        ? 'bg-[#1C2541] text-slate-300 border-slate-700'
-                        : 'bg-white text-slate-600 border-slate-200'
-                    }`}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {!loading && filteredArticles.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {filteredArticles.map((article) => (
-                  <div
-                    key={article.id || article.url}
-                    onClick={() => setSelectedArticle(article)}
-                    className={`rounded-xl p-4 flex flex-col justify-between border cursor-pointer space-y-3 ${
-                      darkMode ? 'bg-[#1C2541]/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
-                    }`}
-                  >
-                    {article.image_url && (
-                      <div className="w-full h-40 rounded-lg overflow-hidden bg-slate-900">
-                        <img
-                          src={article.image_url}
-                          alt={article.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-[10px] uppercase font-extrabold text-slate-400">
-                          {article.source}
-                        </span>
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#3A86FF]/15 text-[#3A86FF]">
-                          ⚡ AI Brief
-                        </span>
-                      </div>
-                      <h3 className="text-base font-bold line-clamp-2">{article.title}</h3>
-                      <p className="text-xs mt-2 line-clamp-3 text-slate-400">{article.summary}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+            <ArticleGrid
+              darkMode={darkMode}
+              articles={filteredArticles}
+              loading={loading}
+              onSelectArticle={setSelectedArticle}
+            />
           </div>
         )}
 
-        {/* 4. View 2: LIQUIDITY CHARTS */}
+        {/* View 2: LIQUIDITY CHARTS */}
         {activeView === 'charts' && (
           <div className="animate-fadeIn">
             <LiquidityCharts darkMode={darkMode} />
@@ -211,7 +147,6 @@ export default function Home() {
         )}
       </main>
 
-      {/* 5. Mobile Floating Bottom Nav */}
       <FloatingBottomBar
         darkMode={darkMode}
         activeView={activeView}
