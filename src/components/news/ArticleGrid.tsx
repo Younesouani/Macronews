@@ -1,5 +1,7 @@
 'use client';
 
+import { useRealtimeNews } from '@/hooks/useRealtimeNews';
+
 export interface Article {
   id: string;
   title: string;
@@ -21,10 +23,16 @@ interface ArticleGridProps {
 
 export default function ArticleGrid({
   darkMode,
-  articles,
+  articles: initialArticles,
   loading,
   onSelectArticle,
 }: ArticleGridProps) {
+  // Extract articles array if the hook returns { articles: [...] } or an array directly
+  const realtimeData = useRealtimeNews(initialArticles);
+  const articlesList: Article[] = Array.isArray(realtimeData)
+    ? realtimeData
+    : (realtimeData as any)?.articles || initialArticles || [];
+
   if (loading) {
     return (
       <div className="text-center py-12">
@@ -35,7 +43,7 @@ export default function ArticleGrid({
     );
   }
 
-  if (articles.length === 0) {
+  if (!articlesList || articlesList.length === 0) {
     return (
       <div className="text-center py-12">
         <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
@@ -47,12 +55,12 @@ export default function ArticleGrid({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {articles.map((article) => (
+      {articlesList.map((article: Article) => (
         <div
           key={article.id || article.url}
           onClick={() => onSelectArticle(article)}
-          className={`rounded-xl p-4 flex flex-col justify-between border cursor-pointer space-y-3 ${
-            darkMode ? 'bg-[#1C2541]/70 border-slate-800' : 'bg-white border-slate-200 shadow-sm'
+          className={`rounded-xl p-4 flex flex-col justify-between border cursor-pointer space-y-3 transition-all duration-200 hover:border-[#3A86FF]/50 ${
+            darkMode ? 'bg-[#1C2541]/70 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-sm'
           }`}
         >
           {article.image_url && (

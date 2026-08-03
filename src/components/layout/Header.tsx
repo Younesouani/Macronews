@@ -29,19 +29,29 @@ export default function Header({
           </div>
         </div>
 
-        {/* Mobile Theme Toggle */}
-        <button
-          onClick={toggleTheme}
-          className={`md:hidden p-2 rounded-xl text-xs font-bold border ${
-            darkMode ? 'bg-[#1C2541] border-slate-700 text-amber-400' : 'bg-white border-slate-200 text-slate-700'
-          }`}
-        >
-          {darkMode ? '☀️' : '🌙'}
-        </button>
+        {/* Mobile App & Theme Buttons */}
+        <div className="flex items-center gap-2 md:hidden">
+          <a
+            href="/api/download"
+            download="MacroTerminal.apk"
+            className="px-2.5 py-1.5 rounded-xl text-xs font-extrabold bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md flex items-center gap-1 active:scale-95"
+          >
+            <span>📲</span> Get App
+          </a>
+
+          <button
+            onClick={toggleTheme}
+            className={`p-2 rounded-xl text-xs font-bold border ${
+              darkMode ? 'bg-[#1C2541] border-slate-700 text-amber-400' : 'bg-white border-slate-200 text-slate-700'
+            }`}
+          >
+            {darkMode ? '☀️' : '🌙'}
+          </button>
+        </div>
       </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex items-center gap-1 bg-black/20 p-1 rounded-2xl border border-slate-700/50 w-full md:w-auto justify-center overflow-x-auto no-scrollbar">
+      {/* Navigation Tabs + Download APK */}
+      <div className="flex items-center gap-1 bg-black/20 p-1 rounded-2xl border border-slate-700/50 w-full md:w-auto justify-start md:justify-center overflow-x-auto no-scrollbar">
         {[
           { id: 'news', label: '📰 News Wire' },
           { id: 'charts', label: '📊 Liquidity' },
@@ -63,6 +73,16 @@ export default function Header({
             {tab.label}
           </button>
         ))}
+
+        {/* Desktop APK Download Button */}
+        <a
+          href="/api/download"
+          download="MacroTerminal.apk"
+          className="hidden md:flex px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all whitespace-nowrap bg-gradient-to-r from-emerald-500 to-teal-600 text-white hover:brightness-110 hover:shadow-lg hover:shadow-emerald-500/20 items-center gap-1.5 ml-1 border border-emerald-400/30"
+          title="Direct Download Android APK (v2.0.0)"
+        >
+          <span>📲</span> Get App
+        </a>
 
         {/* Desktop Theme Switcher */}
         <button

@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const parser = new Parser({
+  timeout: 4000, // 4s timeout per feed so slow sources don't stall execution
   customFields: {
     item: [
       ['media:content', 'mediaContent'],
@@ -17,20 +18,19 @@ const parser = new Parser({
 });
 
 const RSS_FEEDS = [
-  'https://finance.yahoo.com/news/rssindex',
-  'https://www.cnbc.com/id/100003114/device/rss/rss.html',
-  'https://feeds.content.dowjones.io/public/rss/mw_topstories',
+  { url: 'https://finance.yahoo.com/news/rssindex', title: 'Yahoo Finance' },
+  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', title: 'CNBC' },
+  { url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', title: 'MarketWatch' },
+  { url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', title: 'CoinDesk' },
 ];
 
-const SUPABASE_URL = 'https://mujxnzazkqqxpjbftvtb.supabase.co';
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mujxnzazkqqxpjbftvtb.supabase.co';
 
-// Helper to extract image URL from various RSS formats
 function extractImageUrl(item: any): string | null {
   if (item.mediaContent?.$?.url) return item.mediaContent.$.url;
   if (item.mediaThumbnail?.$?.url) return item.mediaThumbnail.$.url;
   if (item.enclosure?.url) return item.enclosure.url;
 
-  // Fallback: extract <img> tag src from content HTML
   const content = item.content || item['content:encoded'] || '';
   const imgMatch = content.match(/<img[^>]+src="([^">]+)"/);
   if (imgMatch && imgMatch[1]) return imgMatch[1];
@@ -41,47 +41,91 @@ function extractImageUrl(item: any): string | null {
 export async function GET() {
   try {
     const supabaseKey = (
-      process.env.SUPABASE_SERVICE_ROLE_KEY || 
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
+      process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
       ''
     ).trim();
 
     if (!supabaseKey) {
       return NextResponse.json(
-        { error: 'Supabase API Key is missing in Vercel settings.' },
+        { error: 'Supabase API Key is missing.' },
         { status: 500 }
       );
     }
 
     const supabase = createClient(SUPABASE_URL, supabaseKey);
 
-    const insertedArticles = [];
     let totalItemsFound = 0;
-    let skippedDuplicates = 0;
-    let errors: string[] = [];
+    const errors: string[] = [];
 
-    for (const feedUrl of RSS_FEEDS) {
-      try {
-        const feed = await parser.parseURL(feedUrl);
-        const items = feed.items || [];
+    // 1. Parallel RSS feed fetching
+    const feedResults = await Promise.allSettled(
+      RSS_FEEDS.map((feed) => parser.parseURL(feed.url).then((res) => ({ feed, res })))
+    );
+
+    const candidates: Array<{ item: any; source: string }> = [];
+
+    for (let i = 0; i < feedResults.length; i++) {
+      const result = feedResults[i];
+      const targetFeed = RSS_FEEDS[i];
+
+      if (result.status === 'fulfilled') {
+        const { feed, res } = result.value;
+        const items = res.items || [];
         totalItemsFound += items.length;
 
-        // Take top 15 from each feed
-        for (const item of items.slice(0, 15)) {
-          if (!item.title || !item.link) continue;
-
-          const cleanUrl = item.link.trim();
-          const { data: existing } = await supabase
-            .from('articles')
-            .select('id')
-            .eq('url', cleanUrl)
-            .maybeSingle();
-
-          if (existing) {
-            skippedDuplicates++;
-            continue;
+        for (const item of items.slice(0, 5)) {
+          if (item.title && item.link) {
+            candidates.push({
+              item,
+              source: feed.title || res.title || 'Financial News',
+            });
           }
+        }
+      } else {
+        errors.push(`Feed Error (${targetFeed.url}): ${result.reason?.message || 'Failed to fetch'}`);
+      }
+    }
 
+    if (candidates.length === 0) {
+      const { data: cached } = await supabase
+        .from('articles')
+        .select('*')
+        .order('published_at', { ascending: false })
+        .limit(60);
+
+      return NextResponse.json({
+        message: 'No new items fetched',
+        totalItemsFound: 0,
+        skippedDuplicates: 0,
+        insertedCount: 0,
+        errors,
+        articles: cached || [],
+      });
+    }
+
+    // 2. Single batch DB check for existing URLs
+    const candidateUrls = candidates.map((c) => c.item.link.trim());
+    const { data: existingRows, error: checkErr } = await supabase
+      .from('articles')
+      .select('url')
+      .in('url', candidateUrls);
+
+    if (checkErr) {
+      errors.push(`DB Existing Articles Check Error: ${checkErr.message}`);
+    }
+
+    const existingUrlSet = new Set((existingRows || []).map((row) => row.url));
+    const newCandidates = candidates.filter((c) => !existingUrlSet.has(c.item.link.trim()));
+    const skippedDuplicates = candidates.length - newCandidates.length;
+
+    let insertedArticles: any[] = [];
+
+    // 3. Parallel AI summarization and batch upsert for new articles
+    if (newCandidates.length > 0) {
+      const preparedArticles = await Promise.all(
+        newCandidates.map(async ({ item, source }) => {
+          const cleanUrl = item.link.trim();
           const textToAnalyze = item.contentSnippet || item.content || item.title;
           let aiSummary = item.contentSnippet || item.title;
 
@@ -92,39 +136,37 @@ export async function GET() {
             errors.push(`AI Error (${item.title.slice(0, 20)}...): ${aiErr.message}`);
           }
 
-          const extractedImage = extractImageUrl(item);
-
-          const newArticle: Record<string, any> = {
+          return {
             title: item.title,
             description: item.contentSnippet || item.title,
             content: item.content || item.contentSnippet || item.title,
             url: cleanUrl,
-            image_url: extractedImage,
-            source: feed.title || 'Financial News',
+            image_url: extractImageUrl(item),
+            source,
             category: 'Macro',
             summary: aiSummary,
             published_at: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
           };
+        })
+      );
 
-          let { data, error } = await supabase.from('articles').insert([newArticle]).select();
+      const { data, error: upsertErr } = await supabase
+        .from('articles')
+        .upsert(preparedArticles, { onConflict: 'url', ignoreDuplicates: true })
+        .select();
 
-          if (error) {
-            console.error('Supabase Insert Error:', error.message);
-            errors.push(`DB Insert Error: ${error.message}`);
-          } else if (data && data.length > 0) {
-            insertedArticles.push(data[0]);
-          }
-        }
-      } catch (feedErr: any) {
-        errors.push(`Feed Error (${feedUrl}): ${feedErr.message}`);
+      if (upsertErr) {
+        errors.push(`DB Upsert Error: ${upsertErr.message}`);
+      } else if (data) {
+        insertedArticles = data;
       }
     }
 
-    // Increased limit to 60 articles
+    // 4. Return full sorted cache of articles instantly
     const { data: allArticles } = await supabase
       .from('articles')
       .select('*')
-      .order('created_at', { ascending: false })
+      .order('published_at', { ascending: false })
       .limit(60);
 
     return NextResponse.json({
