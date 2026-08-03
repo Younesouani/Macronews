@@ -19,7 +19,9 @@
     "lucide-react": "^0.475.0",
     "clsx": "^2.1.1",
     "tailwind-merge": "^3.0.1",
-    "hls.js": "^1.5.8"
+    "hls.js": "^1.5.8",
+    "@tailwindcss/postcss": "^4.0.0",
+    "tailwindcss": "^4.0.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
