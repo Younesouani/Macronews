@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 const parser = new Parser({
-  timeout: 4000, // 4s timeout per feed so slow sources don't stall execution
+  timeout: 4000,
   customFields: {
     item: [
       ['media:content', 'mediaContent'],
@@ -24,7 +24,8 @@ const RSS_FEEDS = [
   { url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', title: 'CoinDesk' },
 ];
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://mujxnzazkqqxpjbftvtb.supabase.co';
+const rawUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
+const SUPABASE_URL = rawUrl.startsWith('http') ? rawUrl : 'https://mujxnzazkqqxpjbftvtb.supabase.co';
 
 function extractImageUrl(item: any): string | null {
   if (item.mediaContent?.$?.url) return item.mediaContent.$.url;
@@ -38,7 +39,7 @@ function extractImageUrl(item: any): string | null {
   return null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabaseKey = (
       process.env.SUPABASE_SERVICE_ROLE_KEY ||
@@ -58,7 +59,6 @@ export async function GET() {
     let totalItemsFound = 0;
     const errors: string[] = [];
 
-    // 1. Parallel RSS feed fetching
     const feedResults = await Promise.allSettled(
       RSS_FEEDS.map((feed) => parser.parseURL(feed.url).then((res) => ({ feed, res })))
     );
@@ -104,7 +104,6 @@ export async function GET() {
       });
     }
 
-    // 2. Single batch DB check for existing URLs
     const candidateUrls = candidates.map((c) => c.item.link.trim());
     const { data: existingRows, error: checkErr } = await supabase
       .from('articles')
@@ -121,7 +120,6 @@ export async function GET() {
 
     let insertedArticles: any[] = [];
 
-    // 3. Parallel AI summarization and batch upsert for new articles
     if (newCandidates.length > 0) {
       const preparedArticles = await Promise.all(
         newCandidates.map(async ({ item, source }) => {
@@ -162,7 +160,6 @@ export async function GET() {
       }
     }
 
-    // 4. Return full sorted cache of articles instantly
     const { data: allArticles } = await supabase
       .from('articles')
       .select('*')
