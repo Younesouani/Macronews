@@ -28,7 +28,7 @@ interface ArticleGridProps {
 
 const matchesCategoryFilter = (article: Article, categoryId: string) => {
   if (!categoryId || categoryId === 'ALL') return true;
-  const text = `${article.title} ${article.summary} ${article.category || ''}`.toLowerCase();
+  const text = `${article.title || ''} ${article.summary || ''} ${article.category || ''}`.toLowerCase();
   switch (categoryId) {
     case 'FED_MACRO':
       return /fed|federal reserve|inflation|cpi|rate|treasury|policy|strike|iran|us |war|economy|gdp|yield/.test(text);
@@ -52,24 +52,33 @@ export default function ArticleGrid({
   searchQuery = '',
 }: ArticleGridProps) {
   const realtimeData = useRealtimeNews(initialArticles);
-  const rawList: Article[] = Array.isArray(realtimeData)
-    ? realtimeData
-    : (realtimeData as any)?.articles || initialArticles || [];
+
+  let rawList: Article[] = [];
+  if (Array.isArray(realtimeData) && realtimeData.length > 0) {
+    rawList = realtimeData;
+  } else if (realtimeData && Array.isArray((realtimeData as any).articles) && (realtimeData as any).articles.length > 0) {
+    rawList = (realtimeData as any).articles;
+  } else {
+    rawList = initialArticles || [];
+  }
 
   const articlesList = rawList.filter((art) => {
-    const query = searchQuery.toLowerCase();
+    const q = (searchQuery || '').trim().toLowerCase();
+    
     const matchesSearch =
-      !searchQuery ||
-      art.title?.toLowerCase().includes(query) ||
-      art.summary?.toLowerCase().includes(query) ||
-      art.source?.toLowerCase().includes(query);
+      !q ||
+      art.title?.toLowerCase().includes(q) ||
+      art.summary?.toLowerCase().includes(q) ||
+      art.description?.toLowerCase().includes(q) ||
+      art.content?.toLowerCase().includes(q) ||
+      art.source?.toLowerCase().includes(q);
 
     return matchesSearch && matchesCategoryFilter(art, activeCategory);
   });
 
   const [activeModalArticle, setActiveModalArticle] = useState<Article | null>(null);
 
-  if (loading) {
+  if (loading && articlesList.length === 0) {
     return (
       <div className="text-center py-12">
         <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
