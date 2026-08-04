@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useRealtimeNews } from '@/hooks/useRealtimeNews';
 
 export interface Article {
@@ -12,17 +13,15 @@ export interface Article {
   published_at: string;
   sentiment?: string;
   category?: string;
-  content?: string;
   description?: string;
+  content?: string;
 }
 
 interface ArticleGridProps {
   darkMode: boolean;
   articles: Article[];
   loading: boolean;
-  onSelectArticle?: (article: Article) => void;
-  selectedCategory?: string;
-  searchQuery?: string;
+  onSelectArticle: (article: Article) => void;
 }
 
 export default function ArticleGrid({
@@ -30,40 +29,13 @@ export default function ArticleGrid({
   articles: initialArticles,
   loading,
   onSelectArticle,
-  selectedCategory = 'All Feeds',
-  searchQuery = '',
 }: ArticleGridProps) {
   const realtimeData = useRealtimeNews(initialArticles);
   const articlesList: Article[] = Array.isArray(realtimeData)
     ? realtimeData
     : (realtimeData as any)?.articles || initialArticles || [];
 
-  const filteredArticles = articlesList.filter((article) => {
-    const category = article.category || 'Macro';
-    const catUpper = selectedCategory.toUpperCase();
-    
-    let matchesCategory = true;
-    if (selectedCategory && selectedCategory !== 'All Feeds') {
-      if (catUpper.includes('FED') || catUpper.includes('MACRO')) {
-        matchesCategory = category === 'Macro' || category === 'Fed & Macro';
-      } else if (catUpper.includes('TECH') || catUpper.includes('EQUIT')) {
-        matchesCategory = category === 'Tech & Equities';
-      } else if (catUpper.includes('CRYPTO')) {
-        matchesCategory = category === 'Crypto';
-      } else {
-        matchesCategory = category.toLowerCase() === selectedCategory.toLowerCase();
-      }
-    }
-
-    const query = searchQuery.toLowerCase().trim();
-    const matchesSearch =
-      !query ||
-      article.title?.toLowerCase().includes(query) ||
-      article.summary?.toLowerCase().includes(query) ||
-      article.source?.toLowerCase().includes(query);
-
-    return matchesCategory && matchesSearch;
-  });
+  const [activeModalArticle, setActiveModalArticle] = useState<Article | null>(null);
 
   if (loading) {
     return (
@@ -75,7 +47,7 @@ export default function ArticleGrid({
     );
   }
 
-  if (!filteredArticles || filteredArticles.length === 0) {
+  if (!articlesList || articlesList.length === 0) {
     return (
       <div className="text-center py-12">
         <p className={`text-sm ${darkMode ? 'text-slate-400' : 'text-slate-600'}`}>
@@ -86,50 +58,151 @@ export default function ArticleGrid({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-      {filteredArticles.map((article: Article) => (
-        <a
-          key={article.id || article.url}
-          href={article.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => {
-            if (onSelectArticle) {
-              onSelectArticle(article);
-            }
-          }}
-          className={`rounded-xl p-4 flex flex-col justify-between border cursor-pointer space-y-3 transition-all duration-200 hover:border-[#3A86FF]/50 ${
-            darkMode ? 'bg-[#1C2541]/70 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-900 shadow-sm'
-          }`}
-        >
-          {article.image_url && (
-            <div className="w-full h-40 rounded-lg overflow-hidden bg-slate-900">
-              <img
-                src={article.image_url}
-                alt={article.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {articlesList.map((article: Article) => {
+          const displaySummary =
+            article.summary || article.description || article.content || article.title;
+
+          return (
+            <div
+              key={article.id || article.url}
+              className={`rounded-xl p-4 flex flex-col justify-between border space-y-3 transition-all duration-200 hover:border-[#3A86FF]/50 ${
+                darkMode
+                  ? 'bg-[#1C2541]/70 border-slate-800 text-white'
+                  : 'bg-white border-slate-200 text-slate-900 shadow-sm'
+              }`}
+            >
+              {article.image_url && (
+                <a
+                  href={article.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full h-40 rounded-lg overflow-hidden bg-slate-900 block"
+                >
+                  <img
+                    src={article.image_url}
+                    alt={article.title}
+                    className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                </a>
+              )}
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-extrabold text-slate-400">
+                    {article.source}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveModalArticle(article);
+                      onSelectArticle(article);
+                    }}
+                    className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#3A86FF]/20 text-[#3A86FF] hover:bg-[#3A86FF] hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
+                  >
+                    ⚡ AI Brief
+                  </button>
+                </div>
+
+                <a
+                  href={article.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block group"
+                >
+                  <h3 className="text-base font-bold line-clamp-2 group-hover:text-[#3A86FF] transition-colors">
+                    {article.title}
+                  </h3>
+                </a>
+
+                <p className="text-xs line-clamp-3 text-slate-400 leading-relaxed">
+                  {displaySummary}
+                </p>
+              </div>
+
+              <div className="pt-2 border-t border-slate-800/40 flex items-center justify-between text-[11px] text-slate-400">
+                <span>
+                  {article.published_at
+                    ? new Date(article.published_at).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })
+                    : 'Live Feed'}
+                </span>
+                <a
+                  href={article.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[#3A86FF] font-semibold hover:underline flex items-center gap-1"
+                >
+                  Read Source &rarr;
+                </a>
+              </div>
             </div>
-          )}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-[10px] uppercase font-extrabold text-slate-400">
-                {article.source}
+          );
+        })}
+      </div>
+
+      {activeModalArticle && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
+          <div
+            className={`w-full max-w-lg rounded-2xl p-6 border shadow-2xl relative space-y-4 ${
+              darkMode ? 'bg-[#0B132B] border-slate-700 text-white' : 'bg-white border-slate-200 text-slate-900'
+            }`}
+          >
+            <button
+              onClick={() => setActiveModalArticle(null)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white text-lg font-bold"
+            >
+              ✕
+            </button>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold px-2.5 py-1 rounded bg-[#3A86FF]/20 text-[#3A86FF]">
+                ⚡ AI Executive Brief
               </span>
-              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#3A86FF]/15 text-[#3A86FF]">
-                ⚡ AI Brief
+              <span className="text-xs text-slate-400 font-semibold uppercase">
+                {activeModalArticle.source}
               </span>
             </div>
-            <h3 className="text-base font-bold line-clamp-2">{article.title}</h3>
-            <p className="text-xs mt-2 line-clamp-3 text-slate-400">
-              {article.summary || article.description || article.content || article.title}
-            </p>
+
+            <h2 className="text-lg font-bold leading-snug">{activeModalArticle.title}</h2>
+
+            <div
+              className={`p-4 rounded-xl text-xs leading-relaxed border ${
+                darkMode ? 'bg-[#1C2541] border-slate-800 text-slate-300' : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}
+            >
+              {activeModalArticle.summary ||
+                activeModalArticle.description ||
+                activeModalArticle.content ||
+                'No additional summary content available.'}
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <button
+                onClick={() => setActiveModalArticle(null)}
+                className="px-4 py-2 text-xs font-bold rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700"
+              >
+                Close
+              </button>
+              <a
+                href={activeModalArticle.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2 text-xs font-bold rounded-lg bg-[#3A86FF] text-white hover:bg-blue-600 transition-colors"
+              >
+                Open Original Source &rarr;
+              </a>
+            </div>
           </div>
-        </a>
-      ))}
-    </div>
+        </div>
+      )}
+    </>
   );
 }
