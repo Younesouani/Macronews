@@ -80,31 +80,6 @@ export default function Home() {
     }
   };
 
-  const matchesCategoryFilter = (article: Article, categoryId: string) => {
-    if (categoryId === 'ALL') return true;
-    const text = `${article.title} ${article.summary} ${article.category || ''}`.toLowerCase();
-    switch (categoryId) {
-      case 'FED_MACRO':
-        return /fed|federal reserve|inflation|cpi|rate|treasury|policy|strike|iran|us |war|economy|gdp|yield/.test(text);
-      case 'TECH_STOCKS':
-        return /tech|semiconductor|ai|nvidia|apple|microsoft|spacex|stock|shares|lam research|earnings|ceo|business/.test(text);
-      case 'ENERGY_COMMODITIES':
-        return /oil|brent|crude|gas|commodity|gold|metal|chevron|beef|prices|energy/.test(text);
-      case 'CRYPTO':
-        return /crypto|bitcoin|ethereum|solana|etf|trust|blockchain|morgan stanley|sec/.test(text);
-      default:
-        return true;
-    }
-  };
-
-  const filteredArticles = articles.filter((art) => {
-    const matchesSearch =
-      art.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      art.summary?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      art.source?.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSearch && matchesCategoryFilter(art, activeCategory);
-  });
-
   return (
     <div
       className={`min-h-screen transition-colors duration-300 font-sans pb-24 ${
@@ -135,9 +110,11 @@ export default function Home() {
 
             <ArticleGrid
               darkMode={darkMode}
-              articles={filteredArticles}
+              articles={articles}
               loading={loading}
               onSelectArticle={setSelectedArticle}
+              activeCategory={activeCategory}
+              searchQuery={searchQuery}
             />
           </div>
         )}

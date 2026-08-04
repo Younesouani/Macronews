@@ -22,18 +22,50 @@ interface ArticleGridProps {
   articles: Article[];
   loading: boolean;
   onSelectArticle: (article: Article) => void;
+  activeCategory?: string;
+  searchQuery?: string;
 }
+
+const matchesCategoryFilter = (article: Article, categoryId: string) => {
+  if (!categoryId || categoryId === 'ALL') return true;
+  const text = `${article.title} ${article.summary} ${article.category || ''}`.toLowerCase();
+  switch (categoryId) {
+    case 'FED_MACRO':
+      return /fed|federal reserve|inflation|cpi|rate|treasury|policy|strike|iran|us |war|economy|gdp|yield/.test(text);
+    case 'TECH_STOCKS':
+      return /tech|semiconductor|ai|nvidia|apple|microsoft|spacex|stock|shares|lam research|earnings|ceo|business/.test(text);
+    case 'ENERGY_COMMODITIES':
+      return /oil|brent|crude|gas|commodity|gold|metal|chevron|beef|prices|energy/.test(text);
+    case 'CRYPTO':
+      return /crypto|bitcoin|ethereum|solana|etf|trust|blockchain|morgan stanley|sec/.test(text);
+    default:
+      return true;
+  }
+};
 
 export default function ArticleGrid({
   darkMode,
   articles: initialArticles,
   loading,
   onSelectArticle,
+  activeCategory = 'ALL',
+  searchQuery = '',
 }: ArticleGridProps) {
   const realtimeData = useRealtimeNews(initialArticles);
-  const articlesList: Article[] = Array.isArray(realtimeData)
+  const rawList: Article[] = Array.isArray(realtimeData)
     ? realtimeData
     : (realtimeData as any)?.articles || initialArticles || [];
+
+  const articlesList = rawList.filter((art) => {
+    const query = searchQuery.toLowerCase();
+    const matchesSearch =
+      !searchQuery ||
+      art.title?.toLowerCase().includes(query) ||
+      art.summary?.toLowerCase().includes(query) ||
+      art.source?.toLowerCase().includes(query);
+
+    return matchesSearch && matchesCategoryFilter(art, activeCategory);
+  });
 
   const [activeModalArticle, setActiveModalArticle] = useState<Article | null>(null);
 
