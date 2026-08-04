@@ -18,10 +18,10 @@ const parser = new Parser({
 });
 
 const RSS_FEEDS = [
-  { url: 'https://finance.yahoo.com/news/rssindex', title: 'Yahoo Finance', defaultCategory: 'Macro' },
-  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', title: 'CNBC', defaultCategory: 'Tech & Equities' },
-  { url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', title: 'MarketWatch', defaultCategory: 'Tech & Equities' },
-  { url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', title: 'CoinDesk', defaultCategory: 'Crypto' },
+  { url: 'https://finance.yahoo.com/news/rssindex', title: 'Yahoo Finance' },
+  { url: 'https://www.cnbc.com/id/100003114/device/rss/rss.html', title: 'CNBC' },
+  { url: 'https://feeds.content.dowjones.io/public/rss/mw_topstories', title: 'MarketWatch' },
+  { url: 'https://www.coindesk.com/arc/outboundfeeds/rss/', title: 'CoinDesk' },
 ];
 
 const rawUrl = (process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim();
@@ -39,20 +39,20 @@ function extractImageUrl(item: any): string | null {
   return null;
 }
 
-function determineCategory(item: any, source: string, defaultCategory: string): string {
-  const text = `${item.title || ''} ${item.contentSnippet || ''}`.toLowerCase();
+function determineCategory(source: string, title: string = '', content: string = ''): string {
+  const text = `${title} ${content}`.toLowerCase();
 
-  if (source === 'CoinDesk' || text.includes('crypto') || text.includes('bitcoin') || text.includes('ethereum') || text.includes('btc')) {
+  if (source.includes('CoinDesk') || text.includes('crypto') || text.includes('bitcoin') || text.includes('btc') || text.includes('eth')) {
     return 'Crypto';
   }
-  if (text.includes('fed') || text.includes('inflation') || text.includes('cpi') || text.includes('interest rate') || text.includes('economy') || text.includes('gdp')) {
-    return 'Fed & Macro';
-  }
-  if (text.includes('tech') || text.includes('ai') || text.includes('stock') || text.includes('nasdaq') || text.includes('s&p') || text.includes('apple') || text.includes('nvidia')) {
+  if (text.includes('tech') || text.includes('ai') || text.includes('nvidia') || text.includes('apple') || text.includes('nasdaq') || text.includes('stock')) {
     return 'Tech & Equities';
   }
+  if (text.includes('fed') || text.includes('inflation') || text.includes('rate') || text.includes('powell') || text.includes('treasury')) {
+    return 'Fed & Macro';
+  }
 
-  return defaultCategory || 'Macro';
+  return 'Macro';
 }
 
 export async function GET(request: Request) {
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
       RSS_FEEDS.map((feed) => parser.parseURL(feed.url).then((res) => ({ feed, res })))
     );
 
-    const candidates: Array<{ item: any; source: string; defaultCategory: string }> = [];
+    const candidates: Array<{ item: any; source: string }> = [];
 
     for (let i = 0; i < feedResults.length; i++) {
       const result = feedResults[i];
@@ -94,8 +94,7 @@ export async function GET(request: Request) {
           if (item.title && item.link) {
             candidates.push({
               item,
-              source: targetFeed.title || res.title || 'Financial News',
-              defaultCategory: targetFeed.defaultCategory,
+              source: feed.title || res.title || 'Financial News',
             });
           }
         }
@@ -139,7 +138,7 @@ export async function GET(request: Request) {
 
     if (newCandidates.length > 0) {
       const preparedArticles = await Promise.all(
-        newCandidates.map(async ({ item, source, defaultCategory }) => {
+        newCandidates.map(async ({ item, source }) => {
           const cleanUrl = item.link.trim();
           const textToAnalyze = item.contentSnippet || item.content || item.title;
           let aiSummary = item.contentSnippet || item.title;
@@ -158,7 +157,7 @@ export async function GET(request: Request) {
             url: cleanUrl,
             image_url: extractImageUrl(item),
             source,
-            category: determineCategory(item, source, defaultCategory),
+            category: determineCategory(source, item.title, textToAnalyze),
             summary: aiSummary,
             published_at: item.pubDate ? new Date(item.pubDate).toISOString() : new Date().toISOString(),
           };
